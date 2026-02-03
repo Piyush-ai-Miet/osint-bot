@@ -301,10 +301,38 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"```\n⏳ SCANNING DATABASE...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
-    url = f"https://osint-num-info.gauravcyber0.workers.dev/?mobile={number}"
-    r = requests.get(url).text
-    formatted = format_json_response(r)
-    await update.message.reply_text(formatted, parse_mode='Markdown')
+    try:
+        url = f"https://osint-num-info.gauravcyber0.workers.dev/?mobile={number}"
+        r = requests.get(url, timeout=15)
+        if r.status_code == 200:
+            formatted = format_json_response(r.text)
+            await update.message.reply_text(formatted, parse_mode='Markdown')
+        else:
+            await update.message.reply_text(
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   ❌ DATA NOT FOUND ❌        ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                f"📱 Number: {number}\n"
+                "⚠️ No data available in database\n\n"
+                "💡 Try another number or contact admin",
+                parse_mode='Markdown'
+            )
+    except Exception as e:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ⚠️ SERVICE ERROR ⚠️         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "❌ API service temporarily unavailable\n"
+            "🔄 Please try again later\n\n"
+            f"💰 Credit refunded: +1",
+            parse_mode='Markdown'
+        )
+        # Refund credit on error
+        add_credits(user_id, 1)
 
 
 async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -334,9 +362,26 @@ async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"```\n⏳ SCANNING DATABASE...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
     url = f"https://prosnal-vehicle.gauravcyber0.workers.dev/?vehicle={vehicle}"
-    r = requests.get(url).text
-    formatted = format_json_response(r)
-    await update.message.reply_text(formatted, parse_mode='Markdown')
+    try:
+        r = requests.get(url, timeout=15)
+        if r.status_code == 200:
+            formatted = format_json_response(r.text)
+            await update.message.reply_text(formatted, parse_mode='Markdown')
+        else:
+            await update.message.reply_text(
+                "```\n❌ DATA NOT FOUND ❌\n```\n"
+                f"🚗 Vehicle: {vehicle}\n"
+                "⚠️ No data available",
+                parse_mode='Markdown'
+            )
+    except Exception as e:
+        await update.message.reply_text(
+            "```\n⚠️ SERVICE ERROR ⚠️\n```\n"
+            "❌ API unavailable\n"
+            "💰 Credit refunded: +1",
+            parse_mode='Markdown'
+        )
+        add_credits(user_id, 1)
 
 
 async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -346,10 +391,17 @@ async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     pin = context.args[0]
     await update.message.reply_text("```\n⏳ SCANNING DATABASE...\n```", parse_mode='Markdown')
-    url = f"https://pin-code-info.gauravcyber0.workers.dev/?pincode={pin}"
-    r = requests.get(url).text
-    formatted = format_json_response(r)
-    await update.message.reply_text(formatted, parse_mode='Markdown')
+    
+    try:
+        url = f"https://pin-code-info.gauravcyber0.workers.dev/?pincode={pin}"
+        r = requests.get(url, timeout=15)
+        if r.status_code == 200:
+            formatted = format_json_response(r.text)
+            await update.message.reply_text(formatted, parse_mode='Markdown')
+        else:
+            await update.message.reply_text("```\n❌ DATA NOT FOUND ❌\n```", parse_mode='Markdown')
+    except Exception as e:
+        await update.message.reply_text("```\n⚠️ SERVICE ERROR ⚠️\n```", parse_mode='Markdown')
 
 
 async def ifsc_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
