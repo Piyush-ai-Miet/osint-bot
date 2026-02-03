@@ -103,7 +103,7 @@ def format_json_response(data):
                     formatted += f"\n```\n━━━━━━━ 📋 RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
                     
                     for idx, result in enumerate(unique_results[:5], 1):
-                        formatted += f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        formatted += f"\n**RECORD #{idx}**\n"
                         
                         if result.get('name'):
                             formatted += f"👤 Name: {result['name']}\n"
