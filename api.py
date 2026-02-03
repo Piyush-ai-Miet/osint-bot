@@ -65,126 +65,107 @@ def format_json_response(data):
     """Format JSON response into readable text with better structure"""
     try:
         if isinstance(data, str):
-        
             data = json.loads(data)
+        
         formatted = "```\n"
         formatted += "╔═══════════════════════════════╗\n"
         formatted += "║  ⚡ OSINT DATA EXTRACTED ⚡   ║\n"
         formatted += "╚═══════════════════════════════╝\n"
         formatted += "```\n"
         
-        # Handle nested data structure
+        # Handle the specific API structure
         if 'data' in data and isinstance(data['data'], dict):
-            data = data['data']
-        
-        # Show count if available
-        if 'count' in data:
-            formatted += f"\n📊 **Total Results:** {data['count']}\n"
-        
-        # Handle results array
-        if 'results' in data and isinstance(data['results'], list):
-            results = data['results']
-            # Remove duplicates
-            seen = set()
-            unique_results = []
-            for item in results:
-                # Create a unique key from important fields
-                key = f"{item.get('mobile', '')}-{item.get('name', '')}-{item.get('email', '')}"
-                if key not in seen:
-                    seen.add(key)
-                    unique_results.append(item)
+            api_data = data['data']
             
-            for idx, result in enumerate(unique_results, 1):
-                formatted += f"\n```\n━━━━━━━ RESULT #{idx} ━━━━━━━\n```\n"
-                
-                # Mobile
-                if result.get('mobile'):
-                    formatted += f"📱 **Mobile:** `{result['mobile']}`\n"
-                
-                # Name
-                if result.get('name'):
-                    formatted += f"👤 **Name:** {result['name']}\n"
-                
-                # Father's Name
-                if result.get('fname'):
-                    formatted += f"👨 **Father:** {result['fname']}\n"
-                
-                # Email
-                if result.get('email') and result['email'] not in ['', 'na', 'N/A']:
-                    formatted += f"📧 **Email:** {result['email']}\n"
-                
-                # Address
-                if result.get('address'):
-                    formatted += f"📍 **Address:**\n   {result['address']}\n"
-                
-                # Circle
-                if result.get('circle'):
-                    formatted += f"🌐 **Circle:** {result['circle']}\n"
-                
-                # Alternate Number
-                if result.get('alt') and result['alt']:
-                    formatted += f"📞 **Alt Number:** {result['alt']}\n"
-                
-                # ID
-                if result.get('id') and result['id']:
-                    formatted += f"🆔 **ID:** {result['id']}\n"
+            # Process api_1 section (main info)
+            if 'api_1' in api_data:
+                formatted += "\n```\n━━━━━━━ � MAIN INFO ━━━━━━━\n```\n"
+                for key, value in api_data['api_1'].items():
+                    if value and str(value).strip() and value != 'N/A':
+                        key_clean = key.replace('_', ' ')
+                        formatted += f"• **{key_clean}:** {value}\n"
+            
+            # Process @Gauravcyber_op section (detailed records)
+            if '@Gauravcyber_op' in api_data:
+                gaurav_data = api_data['@Gauravcyber_op']
+                if 'result' in gaurav_data and isinstance(gaurav_data['result'], list):
+                    results = gaurav_data['result']
+                    
+                    # Remove duplicates based on mobile+name
+                    seen = set()
+                    unique_results = []
+                    for item in results:
+                        key = f"{item.get('mobile', '')}-{item.get('name', '')}"
+                        if key not in seen:
+                            seen.add(key)
+                            unique_results.append(item)
+                    
+                    formatted += f"\n```\n━━━━━━━ � RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
+                    
+                    for idx, result in enumerate(unique_results[:5], 1):  # Show max 5 records
+                        formatted += f"\n**RECORD #{idx}**\n"
+                        
+                        if result.get('name'):
+                            formatted += f"👤 Name: {result['name']}\n"
+                        
+                        if result.get('father_name'):
+                            formatted += f"👨 Father: {result['father_name']}\n"
+                        
+                        if result.get('mobile'):
+                            formatted += f"� Mobile: {result['mobile']}\n"
+                        
+                        if result.get('alt_mobile') and result['alt_mobile'] not in ['', 'N/A']:
+                            formatted += f"� Alt: {result['alt_mobile']}\n"
+                        
+                        if result.get('email') and result['email'] not in ['', 'N/A']:
+                            formatted += f"📧 Email: {result['email']}\n"
+                        
+                        if result.get('circle'):
+                            formatted += f"🌐 Circle: {result['circle']}\n"
+                        
+                        if result.get('address'):
+                            addr = result['address'].replace('!', ', ')[:100]
+                            formatted += f"📍 Address: {addr}...\n"
+                        
+                        if result.get('id_number'):
+                            formatted += f"🆔 ID: {result['id_number']}\n"
+                        
+                        formatted += "\n"
+                    
+                    if len(unique_results) > 5:
+                        formatted += f"_...and {len(unique_results) - 5} more records_\n"
         
         else:
-            # Handle other data formats
+            # Fallback for other API formats
             for key, value in data.items():
-                # Skip technical fields
-                if key in ['success', 'status', 'search_time', 'count', 'results']:
+                if key in ['seller', 'success', 'status'] or key.startswith('@'):
                     continue
                 
-                # Skip seller/ad fields
-                
-                # Skip gauravcyber/advertisement sections
-                if "gauravcyber" in key.lower() or key.startswith("@"):
-                    continue
-                
-                if 'seller' in key.lower() or 'ad' in key.lower():
-                    continue
-                
-                key_formatted = key.replace('_', ' ').replace('-', ' ').title()
+                key_formatted = key.replace('_', ' ').title()
                 
                 if isinstance(value, dict):
-                    formatted += f"\n📌 **{key_formatted}**\n```\n"
+                    formatted += f"\n**{key_formatted}:**\n"
                     for k, v in value.items():
-                        if 'seller' in k.lower() or 'ad' in k.lower():
-                            continue
                         if v and str(v).strip():
-                            k_formatted = k.replace('_', ' ').replace('-', ' ').title()
-                            formatted += f"├─ {k_formatted}: {v}\n"
-                    formatted += "```\n"
+                            formatted += f"• {k}: {v}\n"
                 elif isinstance(value, list):
-                    formatted += f"\n📌 **{key_formatted}**\n```\n"
-                    for item in value:
-                        if item and str(item).strip():
-                            formatted += f"├─ {item}\n"
-                    formatted += "```\n"
+                    formatted += f"\n**{key_formatted}:**\n"
+                    for item in value[:10]:
+                        formatted += f"• {item}\n"
                 else:
                     if value and str(value).strip():
-                        formatted += f"\n💎 **{key_formatted}:** {value}\n"
+                        formatted += f"**{key_formatted}:** {value}\n"
         
         formatted += "\n```\n"
         formatted += "╔═══════════════════════════════╗\n"
-        formatted += "║   🎯 Response by P1yu5h{6_9}  ║\n"
-        formatted += "║      💀 OSINT MASTER 💀       ║\n"
+        formatted += "║   🎯 by P1yu5h{6_9} 💀        ║\n"
         formatted += "╚═══════════════════════════════╝\n"
-        formatted += "```\n"
-        formatted += " _____________________\n"
-        formatted += "< See You Later! 💀 >\n"
-        formatted += " ---------------------\n"
-        formatted += "        \\   ^__^\n"
-        formatted += "         \\  (oo)\\_______\n"
-        formatted += "            (__)\\       )\\/\\\n"
-        formatted += "                ||----w |\n"
-        formatted += "                ||     ||"
+        formatted += "```"
+        
         return formatted
+        
     except Exception as e:
-        # Remove seller from error messages too
-        error_msg = str(data).replace('seller', '***').replace('Seller', '***')
-        return f"❌ **ERROR DETECTED**\n```\n{error_msg}\n```"
+        return f"❌ **ERROR:** Unable to parse data\n```\n{str(e)}\n```"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
