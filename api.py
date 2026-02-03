@@ -1102,7 +1102,7 @@ async def ctf_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "├─ Reverse Engineering & Networking\n"
         "├─ Real-world Cybersecurity Challenges\n\n"
         "🏅 **TOP ACHIEVEMENTS:**\n"
-        "� CyberTea CFTF - 4th Position\n"
+        "🥇 CyberTea CTF - 4th Position\n"
         "🥇 Cruxipher CTF - 4th Position\n"
         "🥈 Digital CyberHunt CTF - 9th/200 teams\n"
         "🥈 H7CTF - 10th/320+ teams\n"
