@@ -79,7 +79,7 @@ def format_json_response(data):
             
             # Process api_1 section (main info)
             if 'api_1' in api_data:
-                formatted += "\n```\n━━━━━━━ � MAIN INFO ━━━━━━━\n```\n"
+                formatted += "\n```\n━━━━━━━ 📱 MAIN INFO ━━━━━━━\n```\n"
                 for key, value in api_data['api_1'].items():
                     if value and str(value).strip() and value != 'N/A':
                         key_clean = key.replace('_', ' ')
@@ -100,9 +100,9 @@ def format_json_response(data):
                             seen.add(key)
                             unique_results.append(item)
                     
-                    formatted += f"\n```\n━━━━━━━ � RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
+                    formatted += f"\n```\n━━━━━━━ 📋 RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
                     
-                    for idx, result in enumerate(unique_results[:5], 1):  # Show max 5 records
+                    formatted += f"\n```\n━━━━━━━ 📋 RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
                         formatted += f"\n**RECORD #{idx}**\n"
                         
                         if result.get('name'):
@@ -112,10 +112,10 @@ def format_json_response(data):
                             formatted += f"👨 Father: {result['father_name']}\n"
                         
                         if result.get('mobile'):
-                            formatted += f"� Mobile: {result['mobile']}\n"
+                            formatted += f"📱 Mobile: {result['mobile']}\n"
                         
                         if result.get('alt_mobile') and result['alt_mobile'] not in ['', 'N/A']:
-                            formatted += f"� Alt: {result['alt_mobile']}\n"
+                            formatted += f"📞 Alt: {result['alt_mobile']}\n"
                         
                         if result.get('email') and result['email'] not in ['', 'N/A']:
                             formatted += f"📧 Email: {result['email']}\n"
@@ -134,6 +134,80 @@ def format_json_response(data):
                     
                     if len(unique_results) > 5:
                         formatted += f"_...and {len(unique_results) - 5} more records_\n"
+            
+            # VEHICLE API - has rc_number key
+            elif 'rc_number' in api_data:
+                vdata = api_data
+                formatted += "\n```\n━━━━━━━ 🚗 VEHICLE INFO ━━━━━━━\n```\n"
+                
+                if vdata.get('rc_number'):
+                    formatted += f"🚗 **RC Number:** {vdata['rc_number']}\n"
+                if vdata.get('owner_name'):
+                    formatted += f"👤 **Owner:** {vdata['owner_name']}\n"
+                if vdata.get('father_name') and vdata['father_name']:
+                    formatted += f"👨 **Father:** {vdata['father_name']}\n"
+                if vdata.get('mobile_number') and vdata['mobile_number']:
+                    formatted += f"📱 **Mobile:** {vdata['mobile_number']}\n"
+                if vdata.get('present_address'):
+                    formatted += f"📍 **Address:** {vdata['present_address']}\n"
+                
+                formatted += f"\n```\n━━━━━━━ 🚙 DETAILS ━━━━━━━\n```\n"
+                
+                if vdata.get('maker_description'):
+                    formatted += f"🏭 **Maker:** {vdata['maker_description']}\n"
+                if vdata.get('maker_model'):
+                    formatted += f"🚙 **Model:** {vdata['maker_model']}\n"
+                if vdata.get('body_type'):
+                    formatted += f"🔧 **Type:** {vdata['body_type']}\n"
+                if vdata.get('fuel_type'):
+                    formatted += f"⛽ **Fuel:** {vdata['fuel_type']}\n"
+                if vdata.get('color'):
+                    formatted += f"🎨 **Color:** {vdata['color']}\n"
+                if vdata.get('manufacturing_date'):
+                    formatted += f"📅 **Mfg:** {vdata['manufacturing_date']}\n"
+                if vdata.get('registration_date'):
+                    formatted += f"📝 **Reg:** {vdata['registration_date']}\n"
+                
+                formatted += f"\n```\n━━━━━━━ 📋 REGISTRATION ━━━━━━━\n```\n"
+                
+                if vdata.get('registered_at'):
+                    formatted += f"📍 **RTO:** {vdata['registered_at']}\n"
+                if vdata.get('rc_status'):
+                    formatted += f"✅ **Status:** {vdata['rc_status']}\n"
+                if vdata.get('fit_up_to'):
+                    formatted += f"🔧 **Fitness:** {vdata['fit_up_to']}\n"
+                if vdata.get('tax_upto'):
+                    formatted += f"💰 **Tax:** {vdata['tax_upto']}\n"
+                if vdata.get('insurance_company'):
+                    ins = vdata['insurance_company'][:30]
+                    formatted += f"🛡️ **Insurance:** {ins}\n"
+                if vdata.get('insurance_upto'):
+                    formatted += f"📅 **Valid:** {vdata['insurance_upto']}\n"
+        
+        # PINCODE API - is a list with PostOffice key
+        elif isinstance(data, list) and len(data) > 0 and 'PostOffice' in data[0]:
+            pdata = data[0]
+            if pdata.get('Message'):
+                formatted += f"\n📊 **{pdata['Message']}**\n"
+            
+            if 'PostOffice' in pdata:
+                for idx, po in enumerate(pdata['PostOffice'], 1):
+                    formatted += f"\n```\n━━━━━━━ POST OFFICE #{idx} ━━━━━━━\n```\n"
+                    
+                    if po.get('Name'):
+                        formatted += f"🏤 **Name:** {po['Name']}\n"
+                    if po.get('BranchType'):
+                        formatted += f"🏢 **Type:** {po['BranchType']}\n"
+                    if po.get('DeliveryStatus'):
+                        formatted += f"📦 **Delivery:** {po['DeliveryStatus']}\n"
+                    if po.get('Block'):
+                        formatted += f"📍 **Block:** {po['Block']}\n"
+                    if po.get('District'):
+                        formatted += f"🏙️ **District:** {po['District']}\n"
+                    if po.get('State'):
+                        formatted += f"🏛️ **State:** {po['State']}\n"
+                    if po.get('Pincode'):
+                        formatted += f"📮 **Pincode:** {po['Pincode']}\n"
         
         else:
             # Fallback for other API formats
