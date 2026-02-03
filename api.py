@@ -3,6 +3,8 @@ import json
 import os
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Get token from environment variable (for security)
 TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAF68OMLuUPvl_pvmxBbzQ3oymdriu0pD8k")
@@ -11,6 +13,22 @@ FREE_GROUPS = []  # List of group IDs where bot is free
 
 # Credits storage (in production, use a database)
 user_credits = {}
+
+# Simple HTTP server for health check
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'Bot is alive!')
+    
+    def log_message(self, format, *args):
+        pass
+
+def run_server():
+    port = int(os.getenv('PORT', 10000))
+    server = HTTPServer(('0.0.0.0', port), HealthHandler)
+    server.serve_forever()
 
 
 def is_free_group(chat_id):
@@ -1231,6 +1249,9 @@ app.add_handler(CommandHandler("sqllearn", sqllearn))
 app.add_handler(CommandHandler("blackhatcomrade", blackhat_comrade))
 app.add_handler(CommandHandler("ai", ai_chat))
 app.add_handler(CommandHandler("help", help_cmd))
+
+# Start HTTP server in background
+Thread(target=run_server, daemon=True).start()
 
 print("Bot running...")
 app.run_polling()
