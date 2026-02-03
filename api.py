@@ -770,59 +770,87 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     question = ' '.join(context.args)
     await update.message.reply_text("```\n🤖 P1yu5h{6_9} AI THINKING...\n```", parse_mode='Markdown')
     
+    ai_response = None
+    
+    # Try multiple AI APIs
     try:
-        # Simple and reliable API
         import urllib.parse
         encoded_question = urllib.parse.quote(question)
-        url = f"https://api.yanzbotz.live/api/ai/gpt4?query={encoded_question}"
         
-        response = requests.get(url, timeout=15)
-        data = response.json()
+        # API 1: Blackbox AI
+        try:
+            url = f"https://api.blackbox.ai/api/chat?q={encoded_question}"
+            response = requests.get(url, timeout=10)
+            data = response.json()
+            if 'response' in data:
+                ai_response = data['response']
+        except:
+            pass
         
-        if 'result' in data:
-            ai_response = data['result']
-        elif 'answer' in data:
-            ai_response = data['answer']
-        elif 'response' in data:
-            ai_response = data['response']
+        # API 2: Gemini
+        if not ai_response:
+            try:
+                url = f"https://api.ryzendesu.vip/api/ai/gemini?text={encoded_question}"
+                response = requests.get(url, timeout=10)
+                data = response.json()
+                if 'response' in data:
+                    ai_response = data['response']
+            except:
+                pass
+        
+        # API 3: ChatGPT
+        if not ai_response:
+            try:
+                url = f"https://api.ryzendesu.vip/api/ai/chatgpt?text={encoded_question}"
+                response = requests.get(url, timeout=10)
+                data = response.json()
+                if 'response' in data:
+                    ai_response = data['response']
+            except:
+                pass
+        
+        # If got response, format and send
+        if ai_response:
+            ai_response = ai_response.strip()
+            if len(ai_response) > 800:
+                ai_response = ai_response[:800] + "..."
+            
+            # Remove markdown that might break
+            ai_response = ai_response.replace('*', '').replace('_', '').replace('`', '')
+            
+            formatted = (
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   🤖 P1yu5h{6_9} AI 🤖        ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                f"💬 Q: {question}\n\n"
+                f"🤖 A: {ai_response}\n\n"
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   🎯 by P1yu5h{6_9} 💀        ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```"
+            )
+            await update.message.reply_text(formatted, parse_mode='Markdown')
         else:
-            ai_response = str(data)
-        
-        # Clean response
-        ai_response = ai_response.strip()
-        if len(ai_response) > 600:
-            ai_response = ai_response[:600] + "..."
-        
-        formatted = (
+            raise Exception("No AI response")
+            
+    except Exception as e:
+        # Fallback response
+        await update.message.reply_text(
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   🤖 P1yu5h{6_9} AI 🤖        ║\n"
             "╚═══════════════════════════════╝\n"
             "```\n"
-            f"💬 **Q:** {question}\n\n"
-            f"🤖 **A:** {ai_response}\n\n"
+            f"💬 Q: {question}\n\n"
+            "🤖 A: AI service temporarily unavailable. Try again later!\n\n"
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   🎯 by P1yu5h{6_9} 💀        ║\n"
             "╚═══════════════════════════════╝\n"
-            "```"
-        )
-        await update.message.reply_text(formatted, parse_mode='Markdown')
-    except Exception as e:
-        # If all fails, give a simple response
-        await update.message.reply_text(
-            f"```\n"
-            f"╔═══════════════════════════════╗\n"
-            f"║   🤖 P1yu5h{{6_9}} AI 🤖        ║\n"
-            f"╚═══════════════════════════════╝\n"
-            f"```\n"
-            f"💬 **Q:** {question}\n\n"
-            f"🤖 **A:** I'm currently learning! Try asking me about OSINT, hacking, or CTF topics.\n\n"
-            f"```\n"
-            f"╔═══════════════════════════════╗\n"
-            f"║   🎯 by P1yu5h{{6_9}} 💀        ║\n"
-            f"╚═══════════════════════════════╝\n"
-            f"```",
+            "```",
             parse_mode='Markdown'
         )
 
