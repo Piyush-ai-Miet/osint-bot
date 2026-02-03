@@ -102,7 +102,7 @@ def format_json_response(data):
                     
                     formatted += f"\n```\n━━━━━━━ 📋 RECORDS ({len(unique_results)}) ━━━━━━━\n```\n"
                     
-                    for idx, result in enumerate(unique_results[:5], 1):
+                    for idx, result in enumerate(unique_results[:2], 1):
                         formatted += f"\n**RECORD #{idx}**\n"
                         
                         if result.get('name'):
@@ -132,8 +132,8 @@ def format_json_response(data):
                         
                         formatted += "\n"
                     
-                    if len(unique_results) > 5:
-                        formatted += f"_...and {len(unique_results) - 5} more records_\n"
+                    if len(unique_results) > 2:
+                        formatted += f"_...and {len(unique_results) - 2} more records_\n"
             
             # VEHICLE API - has rc_number key
             elif 'rc_number' in api_data:
@@ -183,31 +183,6 @@ def format_json_response(data):
                     formatted += f"🛡️ **Insurance:** {ins}\n"
                 if vdata.get('insurance_upto'):
                     formatted += f"📅 **Valid:** {vdata['insurance_upto']}\n"
-        
-        # PINCODE API - is a list with PostOffice key
-        elif isinstance(data, list) and len(data) > 0 and 'PostOffice' in data[0]:
-            pdata = data[0]
-            if pdata.get('Message'):
-                formatted += f"\n📊 **{pdata['Message']}**\n"
-            
-            if 'PostOffice' in pdata:
-                for idx, po in enumerate(pdata['PostOffice'], 1):
-                    formatted += f"\n```\n━━━━━━━ POST OFFICE #{idx} ━━━━━━━\n```\n"
-                    
-                    if po.get('Name'):
-                        formatted += f"🏤 **Name:** {po['Name']}\n"
-                    if po.get('BranchType'):
-                        formatted += f"🏢 **Type:** {po['BranchType']}\n"
-                    if po.get('DeliveryStatus'):
-                        formatted += f"📦 **Delivery:** {po['DeliveryStatus']}\n"
-                    if po.get('Block'):
-                        formatted += f"📍 **Block:** {po['Block']}\n"
-                    if po.get('District'):
-                        formatted += f"🏙️ **District:** {po['District']}\n"
-                    if po.get('State'):
-                        formatted += f"🏛️ **State:** {po['State']}\n"
-                    if po.get('Pincode'):
-                        formatted += f"📮 **Pincode:** {po['Pincode']}\n"
         
         else:
             # Fallback for other API formats
