@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # Get token from environment variable (for security)
-TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAE1AlWPm1A3ILFulA-OnEFpVP_LkjDomp0")
+TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAF68OMLuUPvl_pvmxBbzQ3oymdriu0pD8k")
 ADMIN_USERNAME = "Piyushhu"
 FREE_GROUPS = []  # List of group IDs where bot is free
 
