@@ -125,6 +125,18 @@ def remove_free_group(chat_id):
 
 def format_json_response(data):
     """Format JSON response into readable text with better structure"""
+    
+    def escape_markdown(text):
+        """Escape markdown special characters"""
+        if not text:
+            return text
+        # Escape special markdown characters
+        special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+        text = str(text)
+        for char in special_chars:
+            text = text.replace(char, f'\\{char}')
+        return text
+    
     try:
         if isinstance(data, str):
             # Try to parse JSON, handle empty or invalid responses
@@ -511,7 +523,8 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if response_data and len(response_data) > 50:
                 try:
                     formatted = format_json_response(response_data)
-                    await update.message.reply_text(formatted, parse_mode='Markdown')
+                    # Use HTML parse mode to avoid markdown issues
+                    await update.message.reply_text(formatted, parse_mode=None)
                 except Exception as format_error:
                     # If formatting fails, show raw data
                     await update.message.reply_text(
