@@ -1524,7 +1524,11 @@ async def group_spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         
+        # Create spam bot instance
+        from telegram import Bot
         import asyncio
+        spam_bot = Bot(token=SPAM_BOT_TOKEN)
+        
         task_id = f"group_{chat_id}"
         spam_tasks[task_id] = True
         
@@ -1535,7 +1539,7 @@ async def group_spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 break
             
             try:
-                await context.bot.send_message(chat_id=chat_id, text=message)
+                await spam_bot.send_message(chat_id=chat_id, text=message)
                 success += 1
                 await asyncio.sleep(1)
             except:
