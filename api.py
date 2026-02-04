@@ -11,6 +11,12 @@ TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAF68OMLuUPvl_pvmxBbzQ3oymdriu0pD8k")
 ADMIN_USERNAME = "Piyushhu"
 FREE_GROUPS = []  # List of group IDs where bot is free
 
+# Restricted numbers (Master's numbers - DO NOT SEARCH)
+RESTRICTED_NUMBERS = [
+    "7505426304", 
+    "8791199014"
+]
+
 # Credits storage (in production, use a database)
 user_credits = {}
 
@@ -90,6 +96,23 @@ def format_json_response(data):
         if isinstance(data, str):
             data = json.loads(data)
         
+        # Mask all seller/api_sell fields recursively
+        def mask_seller_fields(obj):
+            if isinstance(obj, dict):
+                for key in list(obj.keys()):
+                    if key in ['seller', 'api_sell', 'api_seller']:
+                        obj[key] = "*** **** ** :- @***********"
+                    elif key == '@Gauravcyber_op':
+                        obj['@****_****'] = obj.pop(key)
+                        mask_seller_fields(obj['@****_****'])
+                    else:
+                        mask_seller_fields(obj[key])
+            elif isinstance(obj, list):
+                for item in obj:
+                    mask_seller_fields(item)
+        
+        mask_seller_fields(data)
+        
         formatted = "```\n"
         formatted += "╔═══════════════════════════════╗\n"
         formatted += "║  ⚡ OSINT DATA EXTRACTED ⚡   ║\n"
@@ -108,11 +131,11 @@ def format_json_response(data):
                         key_clean = key.replace('_', ' ')
                         formatted += f"• **{key_clean}:** {value}\n"
             
-            # Process @Gauravcyber_op section (detailed records)
-            if '@Gauravcyber_op' in api_data:
-                gaurav_data = api_data['@Gauravcyber_op']
-                if 'result' in gaurav_data and isinstance(gaurav_data['result'], list):
-                    results = gaurav_data['result']
+            # Process @****_**** section (detailed records) - masked name
+            if '@****_****' in api_data:
+                masked_data = api_data['@****_****']
+                if 'result' in masked_data and isinstance(masked_data['result'], list):
+                    results = masked_data['result']
                     
                     # Remove duplicates based on mobile+name
                     seen = set()
@@ -337,6 +360,28 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ **USAGE:** `/num 9999565653`", parse_mode='Markdown')
         return
     
+    number = context.args[0]
+    
+    # Check if number is restricted
+    if number in RESTRICTED_NUMBERS:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ⚠️ ACCESS DENIED ⚠️         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "🚫 **DON'T TRY TO BE OVERSMART**\n"
+            "**BY SEARCHING MASTER'S NUMBER**\n"
+            "**YOU BITCH!** 💀\n\n"
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   🔒 RESTRICTED NUMBER 🔒     ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```",
+            parse_mode='Markdown'
+        )
+        return
+    
     if not is_free_group(chat_id) and credits <= 0:
         await update.message.reply_text(
             f"❌ **INSUFFICIENT CREDITS**\n\n"
@@ -347,7 +392,6 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     deduct_credit(user_id, chat_id)
-    number = context.args[0]
     
     if is_free_group(chat_id):
         await update.message.reply_text(f"```\n⏳ SCANNING DATABASE...\n🆓 FREE GROUP MODE\n```", parse_mode='Markdown')
@@ -356,30 +400,60 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         url = f"https://osint-num-info.gauravcyber0.workers.dev/?mobile={number}"
-        r = requests.get(url, timeout=15)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Referer': 'https://osint-num-info.gauravcyber0.workers.dev/',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin'
+        }
+        r = requests.get(url, headers=headers, timeout=15)
         if r.status_code == 200:
-            formatted = format_json_response(r.text)
-            await update.message.reply_text(formatted, parse_mode='Markdown')
+            response_data = r.text
+            # Check if response has actual data
+            if response_data and len(response_data) > 50:
+                formatted = format_json_response(response_data)
+                await update.message.reply_text(formatted, parse_mode='Markdown')
+            else:
+                await update.message.reply_text(
+                    "```\n"
+                    "╔═══════════════════════════════╗\n"
+                    "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
+                    "╚═══════════════════════════════╝\n"
+                    "```\n"
+                    f"📱 Number: {number}\n"
+                    "⚠️ Service is under maintenance\n\n"
+                    "🔄 Please try again later\n"
+                    f"💰 Credit refunded: +1",
+                    parse_mode='Markdown'
+                )
+                add_credits(user_id, 1)
         else:
             await update.message.reply_text(
                 "```\n"
                 "╔═══════════════════════════════╗\n"
-                "║   ❌ DATA NOT FOUND ❌        ║\n"
+                "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
                 "╚═══════════════════════════════╝\n"
                 "```\n"
                 f"📱 Number: {number}\n"
-                "⚠️ No data available in database\n\n"
-                "💡 Try another number or contact admin",
+                "⚠️ Service is under maintenance\n\n"
+                "🔄 Please try again later\n"
+                f"💰 Credit refunded: +1",
                 parse_mode='Markdown'
             )
+            add_credits(user_id, 1)
     except Exception as e:
         await update.message.reply_text(
             "```\n"
             "╔═══════════════════════════════╗\n"
-            "║   ⚠️ SERVICE ERROR ⚠️         ║\n"
+            "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
             "╚═══════════════════════════════╝\n"
             "```\n"
-            "❌ API service temporarily unavailable\n"
+            "⚠️ Service is under maintenance\n"
             "🔄 Please try again later\n\n"
             f"💰 Credit refunded: +1",
             parse_mode='Markdown'
@@ -416,7 +490,13 @@ async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     url = f"https://prosnal-vehicle.gauravcyber0.workers.dev/?vehicle={vehicle}"
     try:
-        r = requests.get(url, timeout=15)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        r = requests.get(url, headers=headers, timeout=15)
         if r.status_code == 200:
             formatted = format_json_response(r.text)
             await update.message.reply_text(formatted, parse_mode='Markdown')
@@ -447,7 +527,13 @@ async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         url = f"https://pin-code-info.gauravcyber0.workers.dev/?pincode={pin}"
-        r = requests.get(url, timeout=15)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        r = requests.get(url, headers=headers, timeout=15)
         if r.status_code == 200:
             formatted = format_json_response(r.text)
             await update.message.reply_text(formatted, parse_mode='Markdown')
@@ -465,7 +551,13 @@ async def ifsc_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ifsc = context.args[0]
     await update.message.reply_text("```\n⏳ SCANNING DATABASE...\n```", parse_mode='Markdown')
     url = f"https://ifsc-code-info.gauravcyber0.workers.dev/?ifsc={ifsc}"
-    r = requests.get(url).text
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive'
+    }
+    r = requests.get(url, headers=headers, timeout=15).text
     formatted = format_json_response(r)
     await update.message.reply_text(formatted, parse_mode='Markdown')
 
@@ -535,7 +627,13 @@ async def gmail_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     url = f"https://gmail-info-api-two.vercel.app/info?mail={email}"
     try:
-        r = requests.get(url).text
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        r = requests.get(url, headers=headers, timeout=15).text
         formatted = format_json_response(r)
         await update.message.reply_text(formatted, parse_mode='Markdown')
     except:
@@ -551,7 +649,13 @@ async def imei_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("```\n⏳ SCANNING IMEI...\n```", parse_mode='Markdown')
     url = f"https://imei-number-infoo.vercel.app/api/imei?imei={imei}"
     try:
-        r = requests.get(url).text
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        r = requests.get(url, headers=headers, timeout=15).text
         formatted = format_json_response(r)
         await update.message.reply_text(formatted, parse_mode='Markdown')
     except:
@@ -723,7 +827,28 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "║   🛑 BOMBER STOPPED 🛑        ║\n"
             "╚═══════════════════════════════╝\n"
             "```\n"
-            "� Bomber operation terminated!",
+            "🛑 Bomber operation terminated!",
+            parse_mode='Markdown'
+        )
+        return
+    
+    phone = context.args[0]
+    
+    # Check if number is restricted
+    if phone in RESTRICTED_NUMBERS:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ⚠️ ACCESS DENIED ⚠️         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "🚫 **DON'T TRY TO BE OVERSMART**\n"
+            "**BITCH!** 💀\n\n"
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   🔒 RESTRICTED NUMBER 🔒     ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```",
             parse_mode='Markdown'
         )
         return
@@ -738,7 +863,6 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     deduct_credit(user_id, chat_id)
-    phone = context.args[0]
     
     if is_free_group(chat_id):
         await update.message.reply_text(f"```\n⏳ INITIATING BOMBER...\n🆓 FREE GROUP MODE\n```", parse_mode='Markdown')
@@ -747,7 +871,13 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     url = f"https://bomm.gauravcyber0.workers.dev/?phone={phone}"
     try:
-        r = requests.get(url).text
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        r = requests.get(url, headers=headers, timeout=15).text
         formatted = format_json_response(r)
         await update.message.reply_text(formatted, parse_mode='Markdown')
     except:
