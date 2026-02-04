@@ -1914,4 +1914,4 @@ app.add_handler(CommandHandler("blocked", list_blocked))
 Thread(target=run_server, daemon=True).start()
 
 print("Bot running...")
-app.run_polling()
+app.run_polling(drop_pending_updates=True)
