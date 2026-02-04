@@ -509,8 +509,17 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             response_data = r.text
             # Check if response has actual data
             if response_data and len(response_data) > 50:
-                formatted = format_json_response(response_data)
-                await update.message.reply_text(formatted, parse_mode='Markdown')
+                try:
+                    formatted = format_json_response(response_data)
+                    await update.message.reply_text(formatted, parse_mode='Markdown')
+                except Exception as format_error:
+                    # If formatting fails, show raw data
+                    await update.message.reply_text(
+                        f"```\n⚠️ Format Error\n```\n"
+                        f"Error: {str(format_error)[:100]}\n"
+                        f"Response length: {len(response_data)}",
+                        parse_mode='Markdown'
+                    )
             else:
                 await update.message.reply_text(
                     "```\n"
