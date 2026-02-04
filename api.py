@@ -8,6 +8,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Get token from environment variable (for security)
 TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAF68OMLuUPvl_pvmxBbzQ3oymdriu0pD8k")
+SPAM_BOT_TOKEN = "7866793934:AAGaIj4ZtGb1l_Ifud0miAoyyCHJMo3MQxw"  # Separate bot for spamming
 ADMIN_USERNAME = "Piyushhu"
 FREE_GROUPS = []  # List of group IDs where bot is free
 
@@ -16,6 +17,10 @@ RESTRICTED_NUMBERS = [
     "7505426304", 
     "8791199014"
 ]
+
+# Spam bot storage
+allowed_spam_users = set()  # Users who can use spam commands
+spam_tasks = {}  # Active spam tasks
 
 # Credits storage (in production, use a database)
 user_credits = {}
@@ -331,6 +336,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/addcredit <id> <amount>` - Add Credits\n"
             "`/addfreegroup` - Grant Free Access\n"
             "`/removefreegroup` - Revoke Access\n\n"
+            "```\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "```\n"
+            "💀 **SPAM COMMANDS**\n\n"
+            "`/spam <id> <count> <msg>` - Spam User\n"
+            "`/groupspam <count> <msg>` - Spam Group\n"
+            "`/stopspam` - Stop All Spam\n"
+            "`/spamusers` - List Spam Users\n"
+            "`/allowspam <id>` - Grant Spam Access\n"
+            "`/revokespam <id>` - Revoke Spam Access\n\n"
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   💀 MASTER ACCESS ACTIVE 💀  ║\n"
@@ -1360,6 +1375,268 @@ async def ctf_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg, parse_mode='Markdown')
 
+
+# ============================================
+# SPAM BOT COMMANDS
+# ============================================
+
+async def spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    
+    # Check if user is admin or allowed
+    if username != ADMIN_USERNAME and user_id not in allowed_spam_users:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ❌ ACCESS DENIED ❌         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "🚫 You don't have spam permission\n"
+            f"💡 Contact @{ADMIN_USERNAME} for access",
+            parse_mode='Markdown'
+        )
+        return
+    
+    if len(context.args) < 3:
+        await update.message.reply_text(
+            "⚠️ **USAGE:**\n"
+            "`/spam <user_id> <count> <message>`\n\n"
+            "**Example:**\n"
+            "`/spam 123456789 50 Hello bro!`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        target_user_id = int(context.args[0])
+        count = int(context.args[1])
+        message = ' '.join(context.args[2:])
+        
+        if count > 100:
+            await update.message.reply_text("⚠️ Maximum 100 messages allowed!")
+            return
+        
+        await update.message.reply_text(
+            f"```\n⏳ INITIATING SPAM...\n```\n"
+            f"🎯 Target: {target_user_id}\n"
+            f"📊 Count: {count}\n"
+            f"💬 Message: {message[:50]}...",
+            parse_mode='Markdown'
+        )
+        
+        # Create spam bot instance
+        from telegram import Bot
+        import asyncio
+        spam_bot = Bot(token=SPAM_BOT_TOKEN)
+        
+        task_id = f"{user_id}_{target_user_id}"
+        spam_tasks[task_id] = True
+        
+        success = 0
+        failed = 0
+        
+        for i in range(count):
+            if task_id not in spam_tasks:
+                break
+            
+            try:
+                await spam_bot.send_message(chat_id=target_user_id, text=message)
+                success += 1
+                await asyncio.sleep(0.5)
+            except:
+                failed += 1
+        
+        if task_id in spam_tasks:
+            del spam_tasks[task_id]
+        
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ✅ SPAM COMPLETED ✅        ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"✅ Sent: {success}\n"
+            f"❌ Failed: {failed}",
+            parse_mode='Markdown'
+        )
+        
+    except ValueError:
+        await update.message.reply_text("❌ Invalid user_id or count!")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+
+async def group_spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    chat_id = update.effective_chat.id
+    
+    if username != ADMIN_USERNAME and user_id not in allowed_spam_users:
+        await update.message.reply_text("❌ Access denied!")
+        return
+    
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "⚠️ **USAGE:**\n"
+            "`/groupspam <count> <message>`\n\n"
+            "**Example:**\n"
+            "`/groupspam 20 Hello everyone!`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        count = int(context.args[0])
+        message = ' '.join(context.args[1:])
+        
+        if count > 50:
+            await update.message.reply_text("⚠️ Maximum 50 messages for group spam!")
+            return
+        
+        await update.message.reply_text(
+            f"```\n⏳ INITIATING GROUP SPAM...\n```\n"
+            f"📊 Count: {count}",
+            parse_mode='Markdown'
+        )
+        
+        import asyncio
+        task_id = f"group_{chat_id}"
+        spam_tasks[task_id] = True
+        
+        success = 0
+        
+        for i in range(count):
+            if task_id not in spam_tasks:
+                break
+            
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=message)
+                success += 1
+                await asyncio.sleep(1)
+            except:
+                break
+        
+        if task_id in spam_tasks:
+            del spam_tasks[task_id]
+        
+        await update.message.reply_text(
+            f"```\n✅ COMPLETED ✅\n```\n"
+            f"✅ Sent: {success}",
+            parse_mode='Markdown'
+        )
+        
+    except ValueError:
+        await update.message.reply_text("❌ Invalid count!")
+
+
+async def stop_spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME and user_id not in allowed_spam_users:
+        await update.message.reply_text("❌ Access denied!")
+        return
+    
+    spam_tasks.clear()
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   🛑 ALL SPAM STOPPED 🛑      ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```",
+        parse_mode='Markdown'
+    )
+
+
+async def spam_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not allowed_spam_users:
+        await update.message.reply_text("📋 No spam users allowed yet!")
+        return
+    
+    user_list = "\n".join([f"• {uid}" for uid in allowed_spam_users])
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   👥 SPAM USERS 👥            ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"**Total:** {len(allowed_spam_users)}\n\n"
+        f"{user_list}",
+        parse_mode='Markdown'
+    )
+
+
+async def allow_spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ **USAGE:** `/allowspam <user_id>`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        user_id = int(context.args[0])
+        allowed_spam_users.add(user_id)
+        
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ✅ SPAM ACCESS GRANTED ✅   ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"👤 User: {user_id}",
+            parse_mode='Markdown'
+        )
+    except ValueError:
+        await update.message.reply_text("❌ Invalid user ID!")
+
+
+async def revoke_spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ **USAGE:** `/revokespam <user_id>`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        user_id = int(context.args[0])
+        if user_id in allowed_spam_users:
+            allowed_spam_users.remove(user_id)
+            await update.message.reply_text(
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   ✅ SPAM ACCESS REVOKED ✅   ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                f"👤 User: {user_id}",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text("⚠️ User not in spam list!")
+    except ValueError:
+        await update.message.reply_text("❌ Invalid user ID!")
+
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
@@ -1384,6 +1661,14 @@ app.add_handler(CommandHandler("sqllearn", sqllearn))
 app.add_handler(CommandHandler("blackhatcomrade", blackhat_comrade))
 app.add_handler(CommandHandler("ai", ai_chat))
 app.add_handler(CommandHandler("help", help_cmd))
+
+# Spam commands
+app.add_handler(CommandHandler("spam", spam_user))
+app.add_handler(CommandHandler("groupspam", group_spam))
+app.add_handler(CommandHandler("stopspam", stop_spam))
+app.add_handler(CommandHandler("spamusers", spam_users_list))
+app.add_handler(CommandHandler("allowspam", allow_spam_user))
+app.add_handler(CommandHandler("revokespam", revoke_spam_user))
 
 # Start HTTP server in background
 Thread(target=run_server, daemon=True).start()
