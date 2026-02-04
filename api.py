@@ -99,7 +99,31 @@ def format_json_response(data):
     """Format JSON response into readable text with better structure"""
     try:
         if isinstance(data, str):
-            data = json.loads(data)
+            # Try to parse JSON, handle empty or invalid responses
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                return (
+                    "```\n"
+                    "╔═══════════════════════════════╗\n"
+                    "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
+                    "╚═══════════════════════════════╝\n"
+                    "```\n"
+                    "⚠️ Invalid response from API\n"
+                    "🔄 Please try again later"
+                )
+        
+        # Check if data is empty or None
+        if not data:
+            return (
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                "⚠️ No data received from API\n"
+                "🔄 Please try again later"
+            )
         
         # Mask all seller/api_sell fields recursively
         def mask_seller_fields(obj):
