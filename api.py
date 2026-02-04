@@ -22,6 +22,11 @@ RESTRICTED_NUMBERS = [
 allowed_spam_users = set()  # Users who can use spam commands
 spam_tasks = {}  # Active spam tasks
 
+# User tracking and logs
+bot_users = set()  # All users who have used the bot
+user_logs = []  # Command logs: {user_id, username, command, timestamp}
+blocked_users = set()  # Users who are blocked from using bot
+
 # Credits storage (in production, use a database)
 user_credits = {}
 
@@ -50,6 +55,29 @@ def run_server():
 def is_free_group(chat_id):
     """Check if the chat is a free group"""
     return chat_id in FREE_GROUPS
+
+
+def log_command(user_id, username, command, details=""):
+    """Log user commands"""
+    from datetime import datetime
+    log_entry = {
+        'user_id': user_id,
+        'username': username or "Unknown",
+        'command': command,
+        'details': details,
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    user_logs.append(log_entry)
+    bot_users.add(user_id)
+    
+    # Keep only last 100 logs
+    if len(user_logs) > 100:
+        user_logs.pop(0)
+
+
+def is_user_blocked(user_id):
+    """Check if user is blocked"""
+    return user_id in blocked_users
 
 
 def get_credits(user_id):
@@ -371,6 +399,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/allowspam <id>` - Grant Spam Access\n"
             "`/revokespam <id>` - Revoke Spam Access\n\n"
             "```\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "```\n"
+            "📊 **ADMIN DASHBOARD**\n\n"
+            "`/stats` - Bot Statistics\n"
+            "`/logs` - View Recent Logs\n"
+            "`/block <id>` - Block User\n"
+            "`/unblock <id>` - Unblock User\n"
+            "`/blocked` - List Blocked Users\n\n"
+            "```\n"
             "╔═══════════════════════════════╗\n"
             "║   💀 MASTER ACCESS ACTIVE 💀  ║\n"
             "╚═══════════════════════════════╝\n"
@@ -392,14 +429,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    username = update.effective_user.username
     chat_id = update.effective_chat.id
     credits = get_credits(user_id)
+    
+    # Check if user is blocked
+    if is_user_blocked(user_id):
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   🚫 ACCESS DENIED 🚫         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "❌ You are blocked from using this bot\n"
+            f"💡 Contact @{ADMIN_USERNAME}",
+            parse_mode='Markdown'
+        )
+        return
     
     if not context.args:
         await update.message.reply_text("⚠️ **USAGE:** `/num 9999565653`", parse_mode='Markdown')
         return
     
     number = context.args[0]
+    
+    # Log command
+    log_command(user_id, username, "/num", f"Number: {number}")
     
     # Check if number is restricted
     if number in RESTRICTED_NUMBERS:
@@ -1664,6 +1719,148 @@ async def revoke_spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Invalid user ID!")
 
 
+async def block_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ **USAGE:** `/block <user_id>`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        user_id = int(context.args[0])
+        blocked_users.add(user_id)
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   🚫 USER BLOCKED 🚫          ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"👤 User: {user_id}\n"
+            "❌ Blocked from using bot",
+            parse_mode='Markdown'
+        )
+    except ValueError:
+        await update.message.reply_text("❌ Invalid user ID!")
+
+
+async def unblock_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not context.args:
+        await update.message.reply_text(
+            "⚠️ **USAGE:** `/unblock <user_id>`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        user_id = int(context.args[0])
+        if user_id in blocked_users:
+            blocked_users.remove(user_id)
+            await update.message.reply_text(
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   ✅ USER UNBLOCKED ✅        ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                f"👤 User: {user_id}",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text("⚠️ User not blocked!")
+    except ValueError:
+        await update.message.reply_text("❌ Invalid user ID!")
+
+
+async def bot_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   📊 BOT STATISTICS 📊        ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"👥 **Total Users:** {len(bot_users)}\n"
+        f"🚫 **Blocked Users:** {len(blocked_users)}\n"
+        f"🔥 **Spam Users:** {len(allowed_spam_users)}\n"
+        f"📝 **Total Logs:** {len(user_logs)}\n"
+        f"⚡ **Active Spam Tasks:** {len(spam_tasks)}\n\n"
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   💀 by P1yu5h{6_9} 💀        ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```",
+        parse_mode='Markdown'
+    )
+
+
+async def view_logs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not user_logs:
+        await update.message.reply_text("📋 No logs yet!")
+        return
+    
+    # Show last 10 logs
+    recent_logs = user_logs[-10:]
+    log_text = "```\n╔═══════════════════════════════╗\n║   📝 RECENT LOGS 📝           ║\n╚═══════════════════════════════╝\n```\n\n"
+    
+    for log in reversed(recent_logs):
+        log_text += (
+            f"👤 **User:** {log['username']} ({log['user_id']})\n"
+            f"⚡ **Command:** {log['command']}\n"
+            f"📄 **Details:** {log['details'][:30]}...\n"
+            f"🕐 **Time:** {log['timestamp']}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        )
+    
+    await update.message.reply_text(log_text, parse_mode='Markdown')
+
+
+async def list_blocked(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.effective_user.username
+    
+    if username != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not blocked_users:
+        await update.message.reply_text("📋 No blocked users!")
+        return
+    
+    user_list = "\n".join([f"• {uid}" for uid in blocked_users])
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   🚫 BLOCKED USERS 🚫         ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"**Total:** {len(blocked_users)}\n\n"
+        f"{user_list}",
+        parse_mode='Markdown'
+    )
+
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
@@ -1696,6 +1893,13 @@ app.add_handler(CommandHandler("stopspam", stop_spam))
 app.add_handler(CommandHandler("spamusers", spam_users_list))
 app.add_handler(CommandHandler("allowspam", allow_spam_user))
 app.add_handler(CommandHandler("revokespam", revoke_spam_user))
+
+# Admin dashboard commands
+app.add_handler(CommandHandler("block", block_user))
+app.add_handler(CommandHandler("unblock", unblock_user))
+app.add_handler(CommandHandler("stats", bot_stats))
+app.add_handler(CommandHandler("logs", view_logs))
+app.add_handler(CommandHandler("blocked", list_blocked))
 
 # Start HTTP server in background
 Thread(target=run_server, daemon=True).start()
