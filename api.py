@@ -528,8 +528,17 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Check if response has actual data
             if response_data and len(response_data) > 50:
                 try:
-                    formatted = format_json_response(response_data)
-                    # Use HTML parse mode to avoid markdown issues
+                    # Parse and mask the response
+                    data = json.loads(response_data)
+                    
+                    # Mask seller fields
+                    if 'seller' in data:
+                        data['seller'] = "*** **** ** :- @***********"
+                    if 'data' in data and '@Gauravcyber_op' in data['data']:
+                        data['data']['@****_****'] = data['data'].pop('@Gauravcyber_op')
+                    
+                    # Format as clean JSON
+                    formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
                     await update.message.reply_text(formatted, parse_mode=None)
                 except Exception as format_error:
                     # If formatting fails, show raw data
@@ -640,11 +649,11 @@ async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ **USAGE:** `/pincode 400708`", parse_mode='Markdown')
+        await update.message.reply_text("⚠️ USAGE: /pincode 400708")
         return
 
     pin = context.args[0]
-    await update.message.reply_text("```\n⏳ SCANNING DATABASE...\n```", parse_mode='Markdown')
+    await update.message.reply_text("⏳ SCANNING DATABASE...")
     
     try:
         url = f"https://pin-code-info.gauravcyber0.workers.dev/?pincode={pin}"
@@ -656,12 +665,20 @@ async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         r = requests.get(url, headers=headers, timeout=15)
         if r.status_code == 200:
-            formatted = format_json_response(r.text)
-            await update.message.reply_text(formatted, parse_mode='Markdown')
+            # Parse and mask
+            data = r.json()
+            if isinstance(data, list):
+                for item in data:
+                    if 'api_sell' in item:
+                        item['api_sell'] = "*** **** ** :- @***********"
+            
+            # Format as JSON
+            formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+            await update.message.reply_text(formatted)
         else:
-            await update.message.reply_text("```\n❌ DATA NOT FOUND ❌\n```", parse_mode='Markdown')
+            await update.message.reply_text("❌ DATA NOT FOUND")
     except Exception as e:
-        await update.message.reply_text("```\n⚠️ SERVICE ERROR ⚠️\n```", parse_mode='Markdown')
+        await update.message.reply_text(f"⚠️ ERROR: {str(e)[:100]}")
 
 
 async def ifsc_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1550,22 +1567,38 @@ async def spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await spam_bot.send_message(chat_id=target_user_id, text=message)
                 success += 1
                 await asyncio.sleep(0.5)
-            except:
+            except Exception as send_error:
                 failed += 1
+                # Log first error for debugging
+                if failed == 1:
+                    error_msg = str(send_error)[:50]
         
         if task_id in spam_tasks:
             del spam_tasks[task_id]
         
-        await update.message.reply_text(
+        result_msg = (
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   ✅ SPAM COMPLETED ✅        ║\n"
             "╚═══════════════════════════════╝\n"
             "```\n"
             f"✅ Sent: {success}\n"
-            f"❌ Failed: {failed}",
-            parse_mode='Markdown'
+            f"❌ Failed: {failed}\n\n"
         )
+        
+        if failed > 0:
+            result_msg += (
+                "💡 **Why messages failed:**\n"
+                "• User must start @Hackerhuu_bot first\n"
+                "• User may have blocked the bot\n"
+                "• Invalid user ID\n\n"
+                "📌 **Tell user to:**\n"
+                "1. Open @Hackerhuu_bot\n"
+                "2. Click START\n"
+                "3. Then spam will work!"
+            )
+        
+        await update.message.reply_text(result_msg, parse_mode='Markdown')
         
     except ValueError:
         await update.message.reply_text("❌ Invalid user_id or count!")
