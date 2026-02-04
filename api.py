@@ -7,8 +7,14 @@ from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # Get token from environment variable (for security)
-TOKEN = os.getenv("BOT_TOKEN", "8367270183:AAF68OMLuUPvl_pvmxBbzQ3oymdriu0pD8k")
-SPAM_BOT_TOKEN = "7866793934:AAGaIj4ZtGb1l_Ifud0miAoyyCHJMo3MQxw"  # Separate bot for spamming
+TOKEN = os.getenv("BOT_TOKEN")
+SPAM_BOT_TOKEN = os.getenv("SPAM_BOT_TOKEN")
+
+if not TOKEN:
+    raise ValueError("BOT_TOKEN environment variable not set!")
+if not SPAM_BOT_TOKEN:
+    raise ValueError("SPAM_BOT_TOKEN environment variable not set!")
+
 ADMIN_USERNAME = "Piyushhu"
 FREE_GROUPS = []  # List of group IDs where bot is free
 
