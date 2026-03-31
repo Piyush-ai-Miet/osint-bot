@@ -20,6 +20,9 @@ Shows all available features that have configurable APIs.
 - gmail (Gmail info)
 - imei (IMEI lookup)
 - bomber (SMS bomber)
+- ai_blackbox (AI Blackbox)
+- ai_gemini (AI Gemini)
+- ai_chatgpt (AI ChatGPT)
 
 ### 2. View Current API URL
 ```
@@ -62,6 +65,9 @@ ip: http://ip-api.com/json/
 gmail: https://gmail-info-api-two.vercel.app/info?mail=
 imei: https://imei-number-infoo.vercel.app/api/imei?imei=
 bomber: https://bomm.gauravcyber0.workers.dev/?phone=
+ai_blackbox: https://api.blackbox.ai/api/chat?q=
+ai_gemini: https://api.ryzendesu.vip/api/ai/gemini?text=
+ai_chatgpt: https://api.ryzendesu.vip/api/ai/chatgpt?text=
 ```
 
 ## Use Cases

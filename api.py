@@ -45,7 +45,10 @@ API_URLS = {
     'ip': 'http://ip-api.com/json/',
     'gmail': 'https://gmail-info-api-two.vercel.app/info?mail=',
     'imei': 'https://imei-number-infoo.vercel.app/api/imei?imei=',
-    'bomber': 'https://bomm.gauravcyber0.workers.dev/?phone='
+    'bomber': 'https://bomm.gauravcyber0.workers.dev/?phone=',
+    'ai_blackbox': 'https://api.blackbox.ai/api/chat?q=',
+    'ai_gemini': 'https://api.ryzendesu.vip/api/ai/gemini?text=',
+    'ai_chatgpt': 'https://api.ryzendesu.vip/api/ai/chatgpt?text='
 }
 
 # Simple HTTP server for health check
@@ -1183,7 +1186,7 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # API 1: Blackbox AI
         try:
-            url = f"https://api.blackbox.ai/api/chat?q={encoded_question}"
+            url = API_URLS['ai_blackbox'] + encoded_question
             response = requests.get(url, timeout=10)
             data = response.json()
             if 'response' in data:
@@ -1194,7 +1197,7 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # API 2: Gemini
         if not ai_response:
             try:
-                url = f"https://api.ryzendesu.vip/api/ai/gemini?text={encoded_question}"
+                url = API_URLS['ai_gemini'] + encoded_question
                 response = requests.get(url, timeout=10)
                 data = response.json()
                 if 'response' in data:
@@ -1205,7 +1208,7 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # API 3: ChatGPT
         if not ai_response:
             try:
-                url = f"https://api.ryzendesu.vip/api/ai/chatgpt?text={encoded_question}"
+                url = API_URLS['ai_chatgpt'] + encoded_question
                 response = requests.get(url, timeout=10)
                 data = response.json()
                 if 'response' in data:
