@@ -36,6 +36,18 @@ blocked_users = set()  # Users who are blocked from using bot
 # Credits storage (in production, use a database)
 user_credits = {}
 
+# API URLs storage (can be changed by admin)
+API_URLS = {
+    'num': 'https://osintapi.in/api/num?number=',
+    'vehicle': 'https://osintapi.in/api/vehicle?rc=',
+    'pincode': 'https://osintapi.in/api/pincode?pincode=',
+    'ifsc': 'https://osintapi.in/api/ifsc?ifsc=',
+    'ip': 'https://osintapi.in/api/ip?ip=',
+    'gmail': 'https://osintapi.in/api/gmail?email=',
+    'imei': 'https://osintapi.in/api/imei?imei=',
+    'bomber': 'https://osintapi.in/api/bomber?number='
+}
+
 # Simple HTTP server for health check
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -511,7 +523,7 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"```\n⏳ SCANNING DATABASE...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
     try:
-        url = f"https://osint-num-info.gauravcyber0.workers.dev/?mobile={number}"
+        url = API_URLS['num'] + number
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -618,7 +630,7 @@ async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"```\n⏳ SCANNING DATABASE...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
-    url = f"https://prosnal-vehicle.gauravcyber0.workers.dev/?vehicle={vehicle}"
+    url = API_URLS['vehicle'] + vehicle
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -656,7 +668,7 @@ async def pincode_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("⏳ SCANNING DATABASE...")
     
     try:
-        url = f"https://pin-code-info.gauravcyber0.workers.dev/?pincode={pin}"
+        url = API_URLS['pincode'] + pin
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
@@ -688,7 +700,7 @@ async def ifsc_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ifsc = context.args[0]
     await update.message.reply_text("```\n⏳ SCANNING DATABASE...\n```", parse_mode='Markdown')
-    url = f"https://ifsc-code-info.gauravcyber0.workers.dev/?ifsc={ifsc}"
+    url = API_URLS['ifsc'] + ifsc
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
@@ -763,7 +775,7 @@ async def gmail_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"```\n⏳ SCANNING EMAIL...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
-    url = f"https://gmail-info-api-two.vercel.app/info?mail={email}"
+    url = API_URLS['gmail'] + email
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -785,7 +797,7 @@ async def imei_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     imei = context.args[0]
     await update.message.reply_text("```\n⏳ SCANNING IMEI...\n```", parse_mode='Markdown')
-    url = f"https://imei-number-infoo.vercel.app/api/imei?imei={imei}"
+    url = API_URLS['imei'] + imei
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -1007,7 +1019,7 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"```\n⏳ INITIATING BOMBER...\n💳 Credits Left: {get_credits(user_id)}\n```", parse_mode='Markdown')
     
-    url = f"https://bomm.gauravcyber0.workers.dev/?phone={phone}"
+    url = API_URLS['bomber'] + phone
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -1122,7 +1134,19 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🔹 `/addfreegroup`\n"
             "   └─► Make this group free (use in group)\n\n"
             "🔹 `/removefreegroup`\n"
-            "   └─► Remove free access (use in group)\n"
+            "   └─► Remove free access (use in group)\n\n"
+            "🔹 `/block <user_id>` - Block user\n"
+            "🔹 `/unblock <user_id>` - Unblock user\n"
+            "🔹 `/stats` - Bot statistics\n"
+            "🔹 `/logs` - View command logs\n"
+            "🔹 `/blocked` - List blocked users\n\n"
+            "🔹 `/allowspam <user_id>` - Allow spam access\n"
+            "🔹 `/revokespam <user_id>` - Revoke spam access\n"
+            "🔹 `/spamusers` - List spam users\n\n"
+            "**🔧 API MANAGEMENT:**\n"
+            "🔹 `/listapis` - List all features\n"
+            "🔹 `/getapi <feature>` - View API URL\n"
+            "🔹 `/setapi <feature> <url>` - Change API URL\n"
         )
     
     msg += (
@@ -1551,7 +1575,9 @@ async def spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Create spam bot instance
         from telegram import Bot
         import asyncio
-        spam_bot = Bot(token=SPAM_BOT_TOKEN)
+        
+        # Use main bot instead of spam bot (no separate hosting needed)
+        spam_bot = context.bot  # Use OSINT bot itself
         
         task_id = f"{user_id}_{target_user_id}"
         spam_tasks[task_id] = True
@@ -1589,13 +1615,9 @@ async def spam_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if failed > 0:
             result_msg += (
                 "💡 **Why messages failed:**\n"
-                "• User must start @Hackerhuu_bot first\n"
                 "• User may have blocked the bot\n"
-                "• Invalid user ID\n\n"
-                "📌 **Tell user to:**\n"
-                "1. Open @Hackerhuu_bot\n"
-                "2. Click START\n"
-                "3. Then spam will work!"
+                "• Invalid user ID\n"
+                "• Rate limit reached"
             )
         
         await update.message.reply_text(result_msg, parse_mode='Markdown')
@@ -1642,7 +1664,9 @@ async def group_spam(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Create spam bot instance
         from telegram import Bot
         import asyncio
-        spam_bot = Bot(token=SPAM_BOT_TOKEN)
+        
+        # Use main bot for group spam
+        spam_bot = context.bot
         
         task_id = f"group_{chat_id}"
         spam_tasks[task_id] = True
@@ -1922,6 +1946,136 @@ async def list_blocked(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def set_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to change API URL for a feature"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║      🔧 SET API URL 🔧       ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "**Usage:** `/setapi <feature> <url>`\n\n"
+            "**Available Features:**\n"
+            "• num\n"
+            "• vehicle\n"
+            "• pincode\n"
+            "• ifsc\n"
+            "• ip\n"
+            "• gmail\n"
+            "• imei\n"
+            "• bomber\n\n"
+            "**Example:**\n"
+            "`/setapi num https://newapi.com/api/num?number=`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    feature = context.args[0].lower()
+    new_url = context.args[1]
+    
+    if feature not in API_URLS:
+        await update.message.reply_text(
+            f"❌ Invalid feature: `{feature}`\n\n"
+            f"Available: {', '.join(API_URLS.keys())}",
+            parse_mode='Markdown'
+        )
+        return
+    
+    old_url = API_URLS[feature]
+    API_URLS[feature] = new_url
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║    ✅ API URL UPDATED ✅     ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"**Feature:** `{feature}`\n\n"
+        f"**Old URL:**\n`{old_url}`\n\n"
+        f"**New URL:**\n`{new_url}`",
+        parse_mode='Markdown'
+    )
+
+
+async def get_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to view current API URL for a feature"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 1:
+        # Show all APIs
+        api_list = ""
+        for feature, url in API_URLS.items():
+            api_list += f"**{feature}:**\n`{url}`\n\n"
+        
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║     📋 CURRENT API URLS 📋   ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n" + api_list,
+            parse_mode='Markdown'
+        )
+        return
+    
+    feature = context.args[0].lower()
+    
+    if feature not in API_URLS:
+        await update.message.reply_text(
+            f"❌ Invalid feature: `{feature}`\n\n"
+            f"Available: {', '.join(API_URLS.keys())}",
+            parse_mode='Markdown'
+        )
+        return
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║      📋 API URL INFO 📋      ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"**Feature:** `{feature}`\n\n"
+        f"**URL:**\n`{API_URLS[feature]}`",
+        parse_mode='Markdown'
+    )
+
+
+async def list_apis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to list all available API features"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    api_list = ""
+    for idx, feature in enumerate(API_URLS.keys(), 1):
+        api_list += f"{idx}. {feature}\n"
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   📋 AVAILABLE FEATURES 📋   ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n" + api_list + "\n"
+        "**Commands:**\n"
+        "• `/getapi <feature>` - View API URL\n"
+        "• `/setapi <feature> <url>` - Change API URL\n"
+        "• `/listapis` - List all features",
+        parse_mode='Markdown'
+    )
+
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
@@ -1961,6 +2115,11 @@ app.add_handler(CommandHandler("unblock", unblock_user))
 app.add_handler(CommandHandler("stats", bot_stats))
 app.add_handler(CommandHandler("logs", view_logs))
 app.add_handler(CommandHandler("blocked", list_blocked))
+
+# API management commands (admin only)
+app.add_handler(CommandHandler("setapi", set_api))
+app.add_handler(CommandHandler("getapi", get_api))
+app.add_handler(CommandHandler("listapis", list_apis))
 
 # Start HTTP server in background
 Thread(target=run_server, daemon=True).start()
