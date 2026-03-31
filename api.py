@@ -38,14 +38,14 @@ user_credits = {}
 
 # API URLs storage (can be changed by admin)
 API_URLS = {
-    'num': 'https://osintapi.in/api/num?number=',
-    'vehicle': 'https://osintapi.in/api/vehicle?rc=',
-    'pincode': 'https://osintapi.in/api/pincode?pincode=',
-    'ifsc': 'https://osintapi.in/api/ifsc?ifsc=',
-    'ip': 'https://osintapi.in/api/ip?ip=',
-    'gmail': 'https://osintapi.in/api/gmail?email=',
-    'imei': 'https://osintapi.in/api/imei?imei=',
-    'bomber': 'https://osintapi.in/api/bomber?number='
+    'num': 'https://osint-num-info.gauravcyber0.workers.dev/?mobile=',
+    'vehicle': 'https://prosnal-vehicle.gauravcyber0.workers.dev/?vehicle=',
+    'pincode': 'https://pin-code-info.gauravcyber0.workers.dev/?pincode=',
+    'ifsc': 'https://ifsc-code-info.gauravcyber0.workers.dev/?ifsc=',
+    'ip': 'http://ip-api.com/json/',
+    'gmail': 'https://gmail-info-api-two.vercel.app/info?mail=',
+    'imei': 'https://imei-number-infoo.vercel.app/api/imei?imei=',
+    'bomber': 'https://bomm.gauravcyber0.workers.dev/?phone='
 }
 
 # Simple HTTP server for health check
@@ -437,6 +437,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/block <id>` - Block User\n"
             "`/unblock <id>` - Unblock User\n"
             "`/blocked` - List Blocked Users\n\n"
+            "```\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "```\n"
+            "🔧 **API MANAGEMENT**\n\n"
+            "`/listapis` - List All Features\n"
+            "`/getapi <feature>` - View API URL\n"
+            "`/setapi <feature> <url>` - Change API\n\n"
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   💀 MASTER ACCESS ACTIVE 💀  ║\n"
