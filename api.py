@@ -447,6 +447,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/listapis` - List All Features\n"
             "`/getapi <feature>` - View API URL\n"
             "`/setapi <feature> <url>` - Change API\n\n"
+            "`/aiapis` - View AI APIs\n"
+            "`/setai <api> <url>` - Change AI API\n\n"
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   💀 MASTER ACCESS ACTIVE 💀  ║\n"
@@ -1971,19 +1973,14 @@ async def set_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "║      🔧 SET API URL 🔧       ║\n"
             "╚═══════════════════════════════╝\n"
             "```\n"
-            "**Usage:** `/setapi <feature> <url>`\n\n"
-            "**Available Features:**\n"
-            "• num\n"
-            "• vehicle\n"
-            "• pincode\n"
-            "• ifsc\n"
-            "• ip\n"
-            "• gmail\n"
-            "• imei\n"
-            "• bomber\n\n"
-            "**Example:**\n"
-            "`/setapi num https://newapi.com/api/num?number=`",
-            parse_mode='Markdown'
+            "Usage: /setapi <feature> <url>\n\n"
+            "Available Features:\n"
+            "• num, vehicle, pincode\n"
+            "• ifsc, ip, gmail, imei\n"
+            "• bomber, ai_blackbox\n"
+            "• ai_gemini, ai_chatgpt\n\n"
+            "Example:\n"
+            "/setapi num https://newapi.com/api/num?number="
         )
         return
     
@@ -1992,9 +1989,8 @@ async def set_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if feature not in API_URLS:
         await update.message.reply_text(
-            f"❌ Invalid feature: `{feature}`\n\n"
-            f"Available: {', '.join(API_URLS.keys())}",
-            parse_mode='Markdown'
+            f"❌ Invalid feature: {feature}\n\n"
+            f"Available: {', '.join(API_URLS.keys())}"
         )
         return
     
@@ -2007,10 +2003,9 @@ async def set_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "║    ✅ API URL UPDATED ✅     ║\n"
         "╚═══════════════════════════════╝\n"
         "```\n"
-        f"**Feature:** `{feature}`\n\n"
-        f"**Old URL:**\n`{old_url}`\n\n"
-        f"**New URL:**\n`{new_url}`",
-        parse_mode='Markdown'
+        f"Feature: {feature}\n\n"
+        f"Old URL:\n{old_url}\n\n"
+        f"New URL:\n{new_url}"
     )
 
 
@@ -2023,18 +2018,18 @@ async def get_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     if len(context.args) < 1:
-        # Show all APIs
+        # Show all APIs (excluding AI APIs)
         api_list = ""
         for feature, url in API_URLS.items():
-            api_list += f"**{feature}:**\n`{url}`\n\n"
+            if not feature.startswith('ai_'):
+                api_list += f"{feature}:\n{url}\n\n"
         
         await update.message.reply_text(
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║     📋 CURRENT API URLS 📋   ║\n"
             "╚═══════════════════════════════╝\n"
-            "```\n" + api_list,
-            parse_mode='Markdown'
+            "```\n" + api_list
         )
         return
     
@@ -2042,9 +2037,8 @@ async def get_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if feature not in API_URLS:
         await update.message.reply_text(
-            f"❌ Invalid feature: `{feature}`\n\n"
-            f"Available: {', '.join(API_URLS.keys())}",
-            parse_mode='Markdown'
+            f"❌ Invalid feature: {feature}\n\n"
+            f"Available: {', '.join([k for k in API_URLS.keys() if not k.startswith('ai_')])}"
         )
         return
     
@@ -2054,9 +2048,8 @@ async def get_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "║      📋 API URL INFO 📋      ║\n"
         "╚═══════════════════════════════╝\n"
         "```\n"
-        f"**Feature:** `{feature}`\n\n"
-        f"**URL:**\n`{API_URLS[feature]}`",
-        parse_mode='Markdown'
+        f"Feature: {feature}\n\n"
+        f"URL:\n{API_URLS[feature]}"
     )
 
 
@@ -2069,8 +2062,11 @@ async def list_apis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     api_list = ""
-    for idx, feature in enumerate(API_URLS.keys(), 1):
-        api_list += f"{idx}. {feature}\n"
+    idx = 1
+    for feature in API_URLS.keys():
+        if not feature.startswith('ai_'):
+            api_list += f"{idx}. {feature}\n"
+            idx += 1
     
     await update.message.reply_text(
         "```\n"
@@ -2078,11 +2074,94 @@ async def list_apis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "║   📋 AVAILABLE FEATURES 📋   ║\n"
         "╚═══════════════════════════════╝\n"
         "```\n" + api_list + "\n"
-        "**Commands:**\n"
-        "• `/getapi <feature>` - View API URL\n"
-        "• `/setapi <feature> <url>` - Change API URL\n"
-        "• `/listapis` - List all features",
-        parse_mode='Markdown'
+        "Commands:\n"
+        "• /getapi <feature> - View API URL\n"
+        "• /setapi <feature> <url> - Change API URL\n"
+        "• /listapis - List all features\n\n"
+        "For AI APIs use: /aiapis"
+    )
+
+
+async def get_ai_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to view AI API URLs"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    ai_list = ""
+    for feature, url in API_URLS.items():
+        if feature.startswith('ai_'):
+            ai_list += f"{feature}:\n{url}\n\n"
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║      🤖 AI API URLS 🤖       ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n" + ai_list +
+        "Commands:\n"
+        "• /aiapis - View all AI APIs\n"
+        "• /setai <api> <url> - Change AI API"
+    )
+
+
+async def set_ai_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to change AI API URL"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║      🤖 SET AI API 🤖        ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "Usage: /setai <api> <url>\n\n"
+            "Available AI APIs:\n"
+            "• blackbox\n"
+            "• gemini\n"
+            "• chatgpt\n\n"
+            "Example:\n"
+            "/setai blackbox https://newai.com/chat?q="
+        )
+        return
+    
+    api_name = context.args[0].lower()
+    new_url = context.args[1]
+    
+    # Map short names to full keys
+    api_map = {
+        'blackbox': 'ai_blackbox',
+        'gemini': 'ai_gemini',
+        'chatgpt': 'ai_chatgpt'
+    }
+    
+    if api_name not in api_map:
+        await update.message.reply_text(
+            f"❌ Invalid AI API: {api_name}\n\n"
+            f"Available: blackbox, gemini, chatgpt"
+        )
+        return
+    
+    feature = api_map[api_name]
+    old_url = API_URLS[feature]
+    API_URLS[feature] = new_url
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   ✅ AI API UPDATED ✅       ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"AI API: {api_name}\n\n"
+        f"Old URL:\n{old_url}\n\n"
+        f"New URL:\n{new_url}"
     )
 
 
@@ -2130,6 +2209,10 @@ app.add_handler(CommandHandler("blocked", list_blocked))
 app.add_handler(CommandHandler("setapi", set_api))
 app.add_handler(CommandHandler("getapi", get_api))
 app.add_handler(CommandHandler("listapis", list_apis))
+
+# AI API management commands (admin only)
+app.add_handler(CommandHandler("aiapis", get_ai_api))
+app.add_handler(CommandHandler("setai", set_ai_api))
 
 # Start HTTP server in background
 Thread(target=run_server, daemon=True).start()
