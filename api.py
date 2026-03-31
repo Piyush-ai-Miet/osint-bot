@@ -46,9 +46,9 @@ API_URLS = {
     'gmail': 'https://gmail-info-api-two.vercel.app/info?mail=',
     'imei': 'https://imei-number-infoo.vercel.app/api/imei?imei=',
     'bomber': 'https://bomm.gauravcyber0.workers.dev/?phone=',
-    'ai_blackbox': 'https://api.blackbox.ai/api/chat?q=',
-    'ai_gemini': 'https://api.ryzendesu.vip/api/ai/gemini?text=',
-    'ai_chatgpt': 'https://api.ryzendesu.vip/api/ai/chatgpt?text='
+    'ai_blackbox': 'https://delicate-field-68bd.rasiksarkarrasiksarkar.workers.dev/?question=',
+    'ai_gemini': 'https://delicate-field-68bd.rasiksarkarrasiksarkar.workers.dev/?question=',
+    'ai_chatgpt': 'https://delicate-field-68bd.rasiksarkarrasiksarkar.workers.dev/?question='
 }
 
 # Simple HTTP server for health check
@@ -1191,24 +1191,28 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             url = API_URLS['ai_blackbox'] + encoded_question
             response = requests.get(url, timeout=10)
             
-            # Try JSON first
-            try:
-                data = response.json()
-                # Try different possible response keys
-                if 'response' in data:
-                    ai_response = data['response']
-                elif 'answer' in data:
-                    ai_response = data['answer']
-                elif 'result' in data:
-                    ai_response = data['result']
-                elif 'message' in data:
-                    ai_response = data['message']
-                elif 'text' in data:
-                    ai_response = data['text']
-            except:
-                # If not JSON, use plain text response
-                if response.status_code == 200 and response.text:
-                    ai_response = response.text.strip()
+            # Check if response is HTML (bot protection)
+            if response.status_code == 200 and 'text/html' not in response.headers.get('content-type', ''):
+                # Try JSON first
+                try:
+                    data = response.json()
+                    # Try different possible response keys
+                    if 'response' in data:
+                        ai_response = data['response']
+                    elif 'answer' in data:
+                        ai_response = data['answer']
+                    elif 'result' in data:
+                        ai_response = data['result']
+                    elif 'message' in data:
+                        ai_response = data['message']
+                    elif 'text' in data:
+                        ai_response = data['text']
+                except:
+                    # If not JSON, use plain text response
+                    text = response.text.strip()
+                    # Check if it's not HTML
+                    if not text.startswith('<') and len(text) > 10:
+                        ai_response = text
         except:
             pass
         
@@ -1217,15 +1221,17 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 url = API_URLS['ai_gemini'] + encoded_question
                 response = requests.get(url, timeout=10)
-                try:
-                    data = response.json()
-                    if 'response' in data:
-                        ai_response = data['response']
-                    elif 'answer' in data:
-                        ai_response = data['answer']
-                except:
-                    if response.status_code == 200 and response.text:
-                        ai_response = response.text.strip()
+                if response.status_code == 200 and 'text/html' not in response.headers.get('content-type', ''):
+                    try:
+                        data = response.json()
+                        if 'response' in data:
+                            ai_response = data['response']
+                        elif 'answer' in data:
+                            ai_response = data['answer']
+                    except:
+                        text = response.text.strip()
+                        if not text.startswith('<') and len(text) > 10:
+                            ai_response = text
             except:
                 pass
         
@@ -1234,15 +1240,17 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 url = API_URLS['ai_chatgpt'] + encoded_question
                 response = requests.get(url, timeout=10)
-                try:
-                    data = response.json()
-                    if 'response' in data:
-                        ai_response = data['response']
-                    elif 'answer' in data:
-                        ai_response = data['answer']
-                except:
-                    if response.status_code == 200 and response.text:
-                        ai_response = response.text.strip()
+                if response.status_code == 200 and 'text/html' not in response.headers.get('content-type', ''):
+                    try:
+                        data = response.json()
+                        if 'response' in data:
+                            ai_response = data['response']
+                        elif 'answer' in data:
+                            ai_response = data['answer']
+                    except:
+                        text = response.text.strip()
+                        if not text.startswith('<') and len(text) > 10:
+                            ai_response = text
             except:
                 pass
         
@@ -1282,7 +1290,12 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "╚═══════════════════════════════╝\n"
             "```\n"
             f"💬 Q: {question}\n\n"
-            "🤖 A: AI service temporarily unavailable. Try again later!\n\n"
+            "🤖 A: AI service temporarily unavailable.\n\n"
+            "⚠️ Possible reasons:\n"
+            "• Rate limit exceeded\n"
+            "• API maintenance\n"
+            "• Network issue\n\n"
+            f"💡 Try again in a few minutes or contact @{ADMIN_USERNAME}\n\n"
             "```\n"
             "╔═══════════════════════════════╗\n"
             "║   🎯 by P1yu5h{6_9} 💀        ║\n"
