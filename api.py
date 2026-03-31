@@ -1190,9 +1190,25 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             url = API_URLS['ai_blackbox'] + encoded_question
             response = requests.get(url, timeout=10)
-            data = response.json()
-            if 'response' in data:
-                ai_response = data['response']
+            
+            # Try JSON first
+            try:
+                data = response.json()
+                # Try different possible response keys
+                if 'response' in data:
+                    ai_response = data['response']
+                elif 'answer' in data:
+                    ai_response = data['answer']
+                elif 'result' in data:
+                    ai_response = data['result']
+                elif 'message' in data:
+                    ai_response = data['message']
+                elif 'text' in data:
+                    ai_response = data['text']
+            except:
+                # If not JSON, use plain text response
+                if response.status_code == 200 and response.text:
+                    ai_response = response.text.strip()
         except:
             pass
         
@@ -1201,9 +1217,15 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 url = API_URLS['ai_gemini'] + encoded_question
                 response = requests.get(url, timeout=10)
-                data = response.json()
-                if 'response' in data:
-                    ai_response = data['response']
+                try:
+                    data = response.json()
+                    if 'response' in data:
+                        ai_response = data['response']
+                    elif 'answer' in data:
+                        ai_response = data['answer']
+                except:
+                    if response.status_code == 200 and response.text:
+                        ai_response = response.text.strip()
             except:
                 pass
         
@@ -1212,9 +1234,15 @@ async def ai_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 url = API_URLS['ai_chatgpt'] + encoded_question
                 response = requests.get(url, timeout=10)
-                data = response.json()
-                if 'response' in data:
-                    ai_response = data['response']
+                try:
+                    data = response.json()
+                    if 'response' in data:
+                        ai_response = data['response']
+                    elif 'answer' in data:
+                        ai_response = data['answer']
+                except:
+                    if response.status_code == 200 and response.text:
+                        ai_response = response.text.strip()
             except:
                 pass
         
