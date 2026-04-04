@@ -1039,11 +1039,90 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive'
         }
-        r = requests.get(url, headers=headers, timeout=15).text
-        formatted = format_json_response(r)
-        await update.message.reply_text(formatted, parse_mode='Markdown')
-    except:
-        await update.message.reply_text("❌ **ERROR:** Unable to execute bomber", parse_mode='Markdown')
+        r = requests.get(url, headers=headers, timeout=15)
+        
+        if r.status_code == 200:
+            response_text = r.text
+            
+            # Check if response has data
+            if response_text and len(response_text) > 50:
+                try:
+                    # Parse bomber response
+                    data = r.json()
+                    
+                    # Mask seller info
+                    if 'developer' in data:
+                        data['developer'] = '@****_****'
+                    
+                    # Format bomber response
+                    formatted = (
+                        "```\n"
+                        "╔═══════════════════════════════╗\n"
+                        "║   💣 BOMBER ACTIVATED 💣      ║\n"
+                        "╚═══════════════════════════════╝\n"
+                        "```\n"
+                        f"📱 **Target:** {data.get('phone', phone)}\n"
+                        f"⏱️ **Duration:** {data.get('duration', 'N/A')} seconds\n"
+                        f"🎯 **Total APIs:** {data.get('total_apis', 0)}\n"
+                        f"✅ **Success:** {data.get('success', 0)}\n"
+                        f"❌ **Failed:** {data.get('failed', 0)}\n\n"
+                        "```\n"
+                        "╔═══════════════════════════════╗\n"
+                        "║   🎯 by P1yu5h{6_9} 💀        ║\n"
+                        "╚═══════════════════════════════╝\n"
+                        "```"
+                    )
+                    await update.message.reply_text(formatted, parse_mode='Markdown')
+                except:
+                    # If JSON parsing fails, show raw response
+                    await update.message.reply_text(
+                        "```\n"
+                        "╔═══════════════════════════════╗\n"
+                        "║   💣 BOMBER ACTIVATED 💣      ║\n"
+                        "╚═══════════════════════════════╝\n"
+                        "```\n"
+                        f"📱 Target: {phone}\n"
+                        f"✅ Bomber initiated successfully!",
+                        parse_mode='Markdown'
+                    )
+            else:
+                await update.message.reply_text(
+                    "```\n"
+                    "╔═══════════════════════════════╗\n"
+                    "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
+                    "╚═══════════════════════════════╝\n"
+                    "```\n"
+                    f"📱 Number: {phone}\n"
+                    "⚠️ Service temporarily unavailable\n"
+                    f"💰 Credit refunded: +1",
+                    parse_mode='Markdown'
+                )
+                add_credits(user_id, 1)
+        else:
+            await update.message.reply_text(
+                "```\n"
+                "╔═══════════════════════════════╗\n"
+                "║   🔧 UNDER MAINTENANCE 🔧    ║\n"
+                "╚═══════════════════════════════╝\n"
+                "```\n"
+                f"📱 Number: {phone}\n"
+                "⚠️ Service temporarily unavailable\n"
+                f"💰 Credit refunded: +1",
+                parse_mode='Markdown'
+            )
+            add_credits(user_id, 1)
+    except Exception as e:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ⚠️ SERVICE ERROR ⚠️         ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "❌ Unable to execute bomber\n"
+            f"💰 Credit refunded: +1",
+            parse_mode='Markdown'
+        )
+        add_credits(user_id, 1)
 
 
 async def osint_resources(update: Update, context: ContextTypes.DEFAULT_TYPE):
