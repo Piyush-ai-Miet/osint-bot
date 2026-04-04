@@ -186,18 +186,26 @@ def format_json_response(data):
                 "🔄 Please try again later"
             )
         
-        # Mask all seller/api_sell fields recursively
+        # Mask all seller/api_sell fields and custom words recursively
         def mask_seller_fields(obj):
             if isinstance(obj, dict):
                 for key in list(obj.keys()):
-                    if key in ['seller', 'api_sell', 'api_seller']:
+                    if key.lower() in ['seller', 'api_sell', 'api_seller', 'developer', 'created_by', 'author']:
                         obj[key] = "*** **** ** :- @***********"
-                    elif key == '@Gauravcyber_op':
+                    # Check if key matches any mask word
+                    elif any(mask_word.lower() in key.lower() for mask_word in MASK_WORDS):
                         obj['@****_****'] = obj.pop(key)
                         mask_seller_fields(obj['@****_****'])
                     else:
+                        # Mask values that contain mask words
+                        if isinstance(obj[key], str):
+                            for mask_word in MASK_WORDS:
+                                if mask_word in obj[key]:
+                                    obj[key] = obj[key].replace(mask_word, '@****_****')
                         mask_seller_fields(obj[key])
             elif isinstance(obj, list):
+                for item in obj:
+                    mask_seller_fields(item)
                 for item in obj:
                     mask_seller_fields(item)
         
@@ -556,10 +564,27 @@ async def num_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     data = json.loads(response_data)
                     
                     # Mask seller fields
-                    if 'seller' in data:
-                        data['seller'] = "*** **** ** :- @***********"
-                    if 'data' in data and '@Gauravcyber_op' in data['data']:
-                        data['data']['@****_****'] = data['data'].pop('@Gauravcyber_op')
+                    def mask_all_fields(obj):
+                        if isinstance(obj, dict):
+                            for key in list(obj.keys()):
+                                if key.lower() in ['seller', 'api_sell', 'api_seller', 'developer', 'created_by', 'author']:
+                                    obj[key] = '@****_****'
+                                # Check if key matches any mask word
+                                elif any(mask_word.lower() in key.lower() for mask_word in MASK_WORDS):
+                                    obj['@****_****'] = obj.pop(key)
+                                    mask_all_fields(obj['@****_****'])
+                                else:
+                                    # Mask values that contain mask words
+                                    if isinstance(obj[key], str):
+                                        for mask_word in MASK_WORDS:
+                                            if mask_word in obj[key]:
+                                                obj[key] = obj[key].replace(mask_word, '@****_****')
+                                    mask_all_fields(obj[key])
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                mask_all_fields(item)
+                    
+                    mask_all_fields(data)
                     
                     # Format as clean JSON
                     formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
@@ -652,8 +677,34 @@ async def vehicle_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         r = requests.get(url, headers=headers, timeout=15)
         if r.status_code == 200:
-            formatted = format_json_response(r.text)
-            await update.message.reply_text(formatted, parse_mode='Markdown')
+            try:
+                data = r.json()
+                
+                # Mask fields
+                def mask_fields(obj):
+                    if isinstance(obj, dict):
+                        for key in list(obj.keys()):
+                            if key.lower() in ['seller', 'api_sell', 'api_seller', 'developer']:
+                                obj[key] = '@****_****'
+                            elif isinstance(obj[key], str):
+                                for mask_word in MASK_WORDS:
+                                    if mask_word in obj[key]:
+                                        obj[key] = obj[key].replace(mask_word, '@****_****')
+                            mask_fields(obj[key])
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            mask_fields(item)
+                
+                mask_fields(data)
+                formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+                await update.message.reply_text(formatted, parse_mode=None)
+            except:
+                await update.message.reply_text(
+                    "```\n❌ DATA NOT FOUND ❌\n```\n"
+                    f"🚗 Vehicle: {vehicle}\n"
+                    "⚠️ Invalid response",
+                    parse_mode='Markdown'
+                )
         else:
             await update.message.reply_text(
                 "```\n❌ DATA NOT FOUND ❌\n```\n"
@@ -719,9 +770,33 @@ async def ifsc_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'Accept-Language': 'en-US,en;q=0.9',
         'Connection': 'keep-alive'
     }
-    r = requests.get(url, headers=headers, timeout=15).text
-    formatted = format_json_response(r)
-    await update.message.reply_text(formatted, parse_mode='Markdown')
+    try:
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            
+            # Mask fields
+            def mask_fields(obj):
+                if isinstance(obj, dict):
+                    for key in list(obj.keys()):
+                        if key.lower() in ['seller', 'developer']:
+                            obj[key] = '@****_****'
+                        elif isinstance(obj[key], str):
+                            for mask_word in MASK_WORDS:
+                                if mask_word in obj[key]:
+                                    obj[key] = obj[key].replace(mask_word, '@****_****')
+                        mask_fields(obj[key])
+                elif isinstance(obj, list):
+                    for item in obj:
+                        mask_fields(item)
+            
+            mask_fields(data)
+            formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+            await update.message.reply_text(formatted, parse_mode=None)
+        else:
+            await update.message.reply_text("❌ DATA NOT FOUND")
+    except:
+        await update.message.reply_text("⚠️ SERVICE ERROR")
 
 
 async def ip_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -795,11 +870,32 @@ async def gmail_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive'
         }
-        r = requests.get(url, headers=headers, timeout=15).text
-        formatted = format_json_response(r)
-        await update.message.reply_text(formatted, parse_mode='Markdown')
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            
+            # Mask fields
+            def mask_fields(obj):
+                if isinstance(obj, dict):
+                    for key in list(obj.keys()):
+                        if key.lower() in ['seller', 'developer']:
+                            obj[key] = '@****_****'
+                        elif isinstance(obj[key], str):
+                            for mask_word in MASK_WORDS:
+                                if mask_word in obj[key]:
+                                    obj[key] = obj[key].replace(mask_word, '@****_****')
+                        mask_fields(obj[key])
+                elif isinstance(obj, list):
+                    for item in obj:
+                        mask_fields(item)
+            
+            mask_fields(data)
+            formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+            await update.message.reply_text(formatted, parse_mode=None)
+        else:
+            await update.message.reply_text("❌ ERROR: Unable to fetch email info")
     except:
-        await update.message.reply_text("❌ **ERROR:** Unable to fetch email info", parse_mode='Markdown')
+        await update.message.reply_text("❌ ERROR: Unable to fetch email info")
 
 
 async def imei_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -817,11 +913,32 @@ async def imei_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Accept-Language': 'en-US,en;q=0.9',
             'Connection': 'keep-alive'
         }
-        r = requests.get(url, headers=headers, timeout=15).text
-        formatted = format_json_response(r)
-        await update.message.reply_text(formatted, parse_mode='Markdown')
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            
+            # Mask fields
+            def mask_fields(obj):
+                if isinstance(obj, dict):
+                    for key in list(obj.keys()):
+                        if key.lower() in ['seller', 'developer']:
+                            obj[key] = '@****_****'
+                        elif isinstance(obj[key], str):
+                            for mask_word in MASK_WORDS:
+                                if mask_word in obj[key]:
+                                    obj[key] = obj[key].replace(mask_word, '@****_****')
+                        mask_fields(obj[key])
+                elif isinstance(obj, list):
+                    for item in obj:
+                        mask_fields(item)
+            
+            mask_fields(data)
+            formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+            await update.message.reply_text(formatted, parse_mode=None)
+        else:
+            await update.message.reply_text("❌ ERROR: Unable to fetch IMEI info")
     except:
-        await update.message.reply_text("❌ **ERROR:** Unable to fetch IMEI info", parse_mode='Markdown')
+        await update.message.reply_text("❌ ERROR: Unable to fetch IMEI info")
 
 
 async def generate_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1050,31 +1167,25 @@ async def bomber(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Parse bomber response
                     data = r.json()
                     
-                    # Mask seller info
-                    if 'developer' in data:
-                        data['developer'] = '@****_****'
+                    # Mask all developer/seller fields
+                    def mask_developer_fields(obj):
+                        if isinstance(obj, dict):
+                            for key in list(obj.keys()):
+                                if key.lower() in ['developer', 'seller', 'api_sell', 'api_seller', 'created_by', 'author']:
+                                    obj[key] = '@****_****'
+                                else:
+                                    mask_developer_fields(obj[key])
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                mask_developer_fields(item)
                     
-                    # Format bomber response
-                    formatted = (
-                        "```\n"
-                        "╔═══════════════════════════════╗\n"
-                        "║   💣 BOMBER ACTIVATED 💣      ║\n"
-                        "╚═══════════════════════════════╝\n"
-                        "```\n"
-                        f"📱 **Target:** {data.get('phone', phone)}\n"
-                        f"⏱️ **Duration:** {data.get('duration', 'N/A')} seconds\n"
-                        f"🎯 **Total APIs:** {data.get('total_apis', 0)}\n"
-                        f"✅ **Success:** {data.get('success', 0)}\n"
-                        f"❌ **Failed:** {data.get('failed', 0)}\n\n"
-                        "```\n"
-                        "╔═══════════════════════════════╗\n"
-                        "║   🎯 by P1yu5h{6_9} 💀        ║\n"
-                        "╚═══════════════════════════════╝\n"
-                        "```"
-                    )
-                    await update.message.reply_text(formatted, parse_mode='Markdown')
+                    mask_developer_fields(data)
+                    
+                    # Format as clean JSON
+                    formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+                    await update.message.reply_text(formatted, parse_mode=None)
                 except:
-                    # If JSON parsing fails, show raw response
+                    # If JSON parsing fails, show success message
                     await update.message.reply_text(
                         "```\n"
                         "╔═══════════════════════════════╗\n"
@@ -2285,6 +2396,300 @@ async def set_ai_api(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# Global mask words list (admin can add/remove)
+MASK_WORDS = ['Gauravcyber_op', 'Propertalx', 'developer', 'seller']
+
+# Custom commands storage (admin can add new commands dynamically)
+CUSTOM_COMMANDS = {}
+# Format: {'command_name': {'api_url': 'url', 'response_key': 'key', 'description': 'desc'}}
+
+
+async def add_mask_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to add words to mask in responses"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║      🎭 MASK WORDS 🎭        ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "Usage: /addmask <word>\n\n"
+            f"Current masked words:\n{', '.join(MASK_WORDS)}\n\n"
+            "Example:\n"
+            "/addmask Propertalx"
+        )
+        return
+    
+    word = ' '.join(context.args)
+    
+    if word not in MASK_WORDS:
+        MASK_WORDS.append(word)
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ✅ WORD ADDED TO MASK ✅   ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"Word: {word}\n\n"
+            f"Total masked words: {len(MASK_WORDS)}\n"
+            f"List: {', '.join(MASK_WORDS)}"
+        )
+    else:
+        await update.message.reply_text(f"⚠️ Word '{word}' already in mask list!")
+
+
+async def remove_mask_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to remove words from mask list"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "Usage: /removemask <word>\n\n"
+            f"Current masked words:\n{', '.join(MASK_WORDS)}"
+        )
+        return
+    
+    word = ' '.join(context.args)
+    
+    if word in MASK_WORDS:
+        MASK_WORDS.remove(word)
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║  ✅ WORD REMOVED FROM MASK ✅ ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"Word: {word}\n\n"
+            f"Remaining: {len(MASK_WORDS)}\n"
+            f"List: {', '.join(MASK_WORDS)}"
+        )
+    else:
+        await update.message.reply_text(f"⚠️ Word '{word}' not in mask list!")
+
+
+async def list_mask_words(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to list all masked words"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    words_list = "\n".join([f"{i+1}. {word}" for i, word in enumerate(MASK_WORDS)])
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║     🎭 MASKED WORDS 🎭       ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"Total: {len(MASK_WORDS)}\n\n"
+        f"{words_list}\n\n"
+        "Commands:\n"
+        "• /addmask <word> - Add word\n"
+        "• /removemask <word> - Remove word\n"
+        "• /listmask - Show all"
+    )
+
+
+async def add_custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to add new custom command"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║   ➕ ADD CUSTOM COMMAND ➕   ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            "Usage: /addcommand <name> <api_url>\n\n"
+            "Example:\n"
+            "/addcommand pan https://api.com/pan?number=\n\n"
+            "After adding, use:\n"
+            "/pan 123456789\n\n"
+            "Note: API should return JSON response"
+        )
+        return
+    
+    cmd_name = context.args[0].lower()
+    api_url = context.args[1]
+    
+    # Add to custom commands
+    CUSTOM_COMMANDS[cmd_name] = {
+        'api_url': api_url,
+        'description': f'Custom {cmd_name} lookup'
+    }
+    
+    # Also add to API_URLS for consistency
+    API_URLS[cmd_name] = api_url
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║  ✅ COMMAND ADDED ✅         ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"Command: /{cmd_name}\n"
+        f"API: {api_url}\n\n"
+        f"Usage: /{cmd_name} <query>\n\n"
+        "Response will be in JSON format"
+    )
+
+
+async def remove_custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to remove custom command"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if len(context.args) < 1:
+        await update.message.reply_text(
+            "Usage: /removecommand <name>\n\n"
+            f"Custom commands: {', '.join(CUSTOM_COMMANDS.keys())}"
+        )
+        return
+    
+    cmd_name = context.args[0].lower()
+    
+    if cmd_name in CUSTOM_COMMANDS:
+        del CUSTOM_COMMANDS[cmd_name]
+        if cmd_name in API_URLS:
+            del API_URLS[cmd_name]
+        
+        await update.message.reply_text(
+            "```\n"
+            "╔═══════════════════════════════╗\n"
+            "║  ✅ COMMAND REMOVED ✅       ║\n"
+            "╚═══════════════════════════════╝\n"
+            "```\n"
+            f"Command: /{cmd_name}\n"
+            f"Remaining: {len(CUSTOM_COMMANDS)}"
+        )
+    else:
+        await update.message.reply_text(f"⚠️ Command '{cmd_name}' not found!")
+
+
+async def list_custom_commands(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to list all custom commands"""
+    user = update.effective_user.username
+    
+    if user != ADMIN_USERNAME:
+        await update.message.reply_text("❌ Admin only command!")
+        return
+    
+    if not CUSTOM_COMMANDS:
+        await update.message.reply_text("No custom commands added yet!")
+        return
+    
+    cmd_list = ""
+    for idx, (name, info) in enumerate(CUSTOM_COMMANDS.items(), 1):
+        cmd_list += f"{idx}. /{name}\n   API: {info['api_url']}\n\n"
+    
+    await update.message.reply_text(
+        "```\n"
+        "╔═══════════════════════════════╗\n"
+        "║   📋 CUSTOM COMMANDS 📋      ║\n"
+        "╚═══════════════════════════════╝\n"
+        "```\n"
+        f"Total: {len(CUSTOM_COMMANDS)}\n\n"
+        f"{cmd_list}"
+        "Commands:\n"
+        "• /addcommand <name> <url>\n"
+        "• /removecommand <name>\n"
+        "• /listcommands"
+    )
+
+
+async def custom_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generic handler for custom commands"""
+    command = update.message.text.split()[0][1:]  # Remove /
+    
+    if command not in CUSTOM_COMMANDS:
+        return
+    
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    credits = get_credits(user_id)
+    
+    if not context.args:
+        await update.message.reply_text(f"⚠️ USAGE: /{command} <query>")
+        return
+    
+    # Check if user is blocked
+    if is_user_blocked(user_id):
+        await update.message.reply_text("❌ You are blocked from using this bot")
+        return
+    
+    if not is_free_group(chat_id) and credits <= 0:
+        await update.message.reply_text(
+            f"❌ INSUFFICIENT CREDITS\n\n"
+            f"💳 Your Credits: {credits}\n"
+            f"💰 Contact @{ADMIN_USERNAME}"
+        )
+        return
+    
+    deduct_credit(user_id, chat_id)
+    query = ' '.join(context.args)
+    
+    await update.message.reply_text("```\n⏳ PROCESSING...\n```", parse_mode='Markdown')
+    
+    try:
+        url = CUSTOM_COMMANDS[command]['api_url'] + query
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive'
+        }
+        
+        r = requests.get(url, headers=headers, timeout=15)
+        
+        if r.status_code == 200:
+            data = r.json()
+            
+            # Mask fields
+            def mask_fields(obj):
+                if isinstance(obj, dict):
+                    for key in list(obj.keys()):
+                        if key.lower() in ['seller', 'developer', 'api_sell', 'created_by']:
+                            obj[key] = '@****_****'
+                        elif isinstance(obj[key], str):
+                            for mask_word in MASK_WORDS:
+                                if mask_word in obj[key]:
+                                    obj[key] = obj[key].replace(mask_word, '@****_****')
+                        mask_fields(obj[key])
+                elif isinstance(obj, list):
+                    for item in obj:
+                        mask_fields(item)
+            
+            mask_fields(data)
+            formatted = "```json\n" + json.dumps(data, indent=2, ensure_ascii=False) + "\n```"
+            await update.message.reply_text(formatted, parse_mode=None)
+        else:
+            await update.message.reply_text("❌ DATA NOT FOUND")
+            add_credits(user_id, 1)
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ ERROR: Service unavailable\n💰 Credit refunded")
+        add_credits(user_id, 1)
+
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
@@ -2333,6 +2738,20 @@ app.add_handler(CommandHandler("listapis", list_apis))
 # AI API management commands (admin only)
 app.add_handler(CommandHandler("aiapis", get_ai_api))
 app.add_handler(CommandHandler("setai", set_ai_api))
+
+# Mask words management (admin only)
+app.add_handler(CommandHandler("addmask", add_mask_word))
+app.add_handler(CommandHandler("removemask", remove_mask_word))
+app.add_handler(CommandHandler("listmask", list_mask_words))
+
+# Custom command management (admin only)
+app.add_handler(CommandHandler("addcommand", add_custom_command))
+app.add_handler(CommandHandler("removecommand", remove_custom_command))
+app.add_handler(CommandHandler("listcommands", list_custom_commands))
+
+# Message handler for custom commands (must be last)
+from telegram.ext import MessageHandler, filters
+app.add_handler(MessageHandler(filters.COMMAND, custom_command_handler))
 
 # Start HTTP server in background
 Thread(target=run_server, daemon=True).start()
